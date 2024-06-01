@@ -2,6 +2,7 @@ import requests
 import time
 import json
 import os
+from multiprocessing import Process
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -110,18 +111,18 @@ def get_top_100_coins():
         print(f"Error fetching top 100 coins from CoinGecko: {e}")
         return []
 
-def load_price_history():
-    if os.path.exists('price_history.json'):
-        with open('price_history.json', 'r') as f:
+def load_price_history(filepath):
+    if os.path.exists(filepath):
+        with open(filepath, 'r') as f:
             return json.load(f)
     return {}
 
-def save_price_history(price_history):
-    with open('price_history.json', 'w') as f:
+def save_price_history(price_history, filepath):
+    with open(filepath, 'w') as f:
         json.dump(price_history, f, indent=4)
 
 # Function to monitor price changes
-def monitor_prices(interval=300, threshold=0.05):
+def monitor_prices(interval=300, threshold=0.05, history_file='price_history.json'):
     coins = get_top_100_coins()
     
     # Split the coins into batches for each API
@@ -134,7 +135,7 @@ def monitor_prices(interval=300, threshold=0.05):
         coins[80:100]     # 81-100 to CoinGecko or another API
     ]
     
-    price_history = load_price_history()
+    price_history = load_price_history(history_file)
 
     for coin in coins:
         if coin not in price_history:
@@ -143,11 +144,11 @@ def monitor_prices(interval=300, threshold=0.05):
     def check_price_changes():
         current_prices = {}
         processes = [
-            multiprocessing.Process(target=lambda: current_prices.update(fetch_from_coingecko(batches[0]))),
-            multiprocessing.Process(target=lambda: current_prices.update(fetch_from_coinmarketcap(batches[1]))),
-            multiprocessing.Process(target=lambda: current_prices.update(fetch_from_cryptocompare(batches[2]))),
-            multiprocessing.Process(target=lambda: current_prices.update(fetch_from_messari(batches[3]))),
-            multiprocessing.Process(target=lambda: current_prices.update(fetch_from_coingecko(batches[4])))
+            Process(target=lambda: current_prices.update(fetch_from_coingecko(batches[0]))),
+            Process(target=lambda: current_prices.update(fetch_from_coinmarketcap(batches[1]))),
+            Process(target=lambda: current_prices.update(fetch_from_cryptocompare(batches[2]))),
+            Process(target=lambda: current_prices.update(fetch_from_messari(batches[3]))),
+            Process(target=lambda: current_prices.update(fetch_from_coingecko(batches[4])))
         ]
 
         for process in processes:
@@ -170,7 +171,7 @@ def monitor_prices(interval=300, threshold=0.05):
                     print(msg)
                     send_telegram_message(msg)
 
-        save_price_history(price_history)
+        save_price_history(price_history, history_file)
 
     check_price_changes()
 
