@@ -33,6 +33,7 @@ jobs:
         git pull origin main
         if [ ! -f price_history.json ]; then
             echo "{}" > price_history.json
+        fi
 
     - name: Run monitor script
       env:
