@@ -112,20 +112,26 @@ def get_top_100_coins():
         return []
 
 def load_price_history(filepath):
+    print(f"Loading price history from {filepath}")
     if os.path.exists(filepath):
         with open(filepath, 'r') as f:
             try:
                 return json.load(f)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                print(f"Error decoding JSON from {filepath}: {e}")
                 return {}
     return {}
 
 def save_price_history(price_history, filepath):
+    print(f"Saving price history to {filepath}")
     with open(filepath, 'w') as f:
-        json.dump(price_history, f, indent=4)
+        try:
+            json.dump(price_history, f, indent=4)
+        except Exception as e:
+            print(f"Error saving JSON to {filepath}: {e}")
 
 # Function to monitor price changes
-def monitor_prices(interval=300, threshold=0.05, history_file='price_history.json'):
+def monitor_prices(interval=600, threshold=0.05, history_file='price_history.json'):
     coins = get_top_100_coins()
     
     # Split the coins into batches for each API
