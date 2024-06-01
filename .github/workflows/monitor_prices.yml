@@ -30,13 +30,9 @@ jobs:
 
     - name: Load price history
       run: |
-        if [ -f price_history.json ]; then
-            echo "Price history file exists. Pulling latest changes..."
-            git pull origin main
-        else
-            echo "Price history file does not exist. Creating a new one..."
+        git pull origin main
+        if [ ! -f price_history.json ]; then
             echo "{}" > price_history.json
-        fi
 
     - name: Run monitor script
       env:
