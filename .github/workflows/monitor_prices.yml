@@ -36,6 +36,7 @@ jobs:
         else
             echo "Price history file does not exist. Creating a new one..."
             echo "{}" > price_history.json
+        fi
 
     - name: Run monitor script
       env:
