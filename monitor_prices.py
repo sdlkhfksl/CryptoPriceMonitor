@@ -114,7 +114,10 @@ def get_top_100_coins():
 def load_price_history(filepath):
     if os.path.exists(filepath):
         with open(filepath, 'r') as f:
-            return json.load(f)
+            try:
+                return json.load(f)
+            except json.JSONDecodeError:
+                return {}
     return {}
 
 def save_price_history(price_history, filepath):
