@@ -13,6 +13,11 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Setup Git
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
@@ -23,6 +28,15 @@ jobs:
         python -m pip install --upgrade pip
         pip install requests python-dotenv
 
+    - name: Load price history
+      run: |
+        if [ -f price_history.json ]; then
+            echo "Price history file exists. Pulling latest changes..."
+            git pull origin main
+        else
+            echo "Price history file does not exist. Creating a new one..."
+            echo "{}" > price_history.json
+
     - name: Run monitor script
       env:
         COINMARKETCAP_API_KEY: ${{ secrets.COINMARKETCAP_API_KEY }}
@@ -32,3 +46,9 @@ jobs:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: |
         python monitor_prices.py
+
+    - name: Commit and push price history
+      run: |
+        git add price_history.json
+        git commit -m "Update price history"
+        git push
