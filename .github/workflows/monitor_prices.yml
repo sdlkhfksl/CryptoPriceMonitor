@@ -46,7 +46,9 @@ jobs:
         python monitor_prices.py
 
     - name: Commit and push price history
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         git add price_history.json
         git commit -m "Update price history"
-        git push
+        git push origin main
