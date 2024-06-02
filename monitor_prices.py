@@ -53,6 +53,10 @@ def generate_id_mappings():
 # Fetch mappings
 coingecko_map, coinmarketcap_map, cryptocompare_map, messari_map = generate_id_mappings()
 
+# Function to standardize coin names
+def standardize_coin_name(coin, mapping):
+    return mapping.get(coin, coin)
+
 # Function to fetch data from CoinGecko
 def fetch_from_coingecko(coin_ids, current_prices):
     print(f"Fetching data from CoinGecko for {coin_ids}")
@@ -203,10 +207,10 @@ def monitor_prices(interval=600, threshold=0.05, history_file='price_history.jso
         for process in processes:
             process.join()
 
-        current_prices = dict(current_prices)
-        print("Fetched current prices:", current_prices)
+        print(f"Fetched current prices: {dict(current_prices)}")
 
-        for coin, price in current_prices.items():
+        for coin, price_info in current_prices.items():
+            price = price_info['usd'] if 'usd' in price_info else price_info
             if len(price_history[coin]) >= 3:
                 price_history[coin].pop(0)
             price_history[coin].append(price)
