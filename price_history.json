@@ -1,43 +1,149 @@
 {
-    "bitcoin": [],
-    "ethereum": [],
-    "tether": [],
-    "binancecoin": [],
-    "solana": [],
-    "staked-ether": [],
-    "usd-coin": [],
-    "ripple": [],
-    "dogecoin": [],
-    "cardano": [],
-    "the-open-network": [],
-    "shiba-inu": [],
-    "avalanche-2": [],
-    "chainlink": [],
-    "wrapped-bitcoin": [],
-    "tron": [],
-    "polkadot": [],
-    "bitcoin-cash": [],
-    "near": [],
-    "uniswap": [],
+    "bitcoin": [
+        {
+            "usd": 68312
+        }
+    ],
+    "ethereum": [
+        {
+            "usd": 3803.36
+        }
+    ],
+    "tether": [
+        {
+            "usd": 0.999252
+        }
+    ],
+    "binancecoin": [
+        {
+            "usd": 601.15
+        }
+    ],
+    "solana": [
+        {
+            "usd": 165.47
+        }
+    ],
+    "staked-ether": [
+        {
+            "usd": 3799.47
+        }
+    ],
+    "usd-coin": [
+        {
+            "usd": 1.0
+        }
+    ],
+    "ripple": [
+        {
+            "usd": 0.518868
+        }
+    ],
+    "dogecoin": [
+        {
+            "usd": 0.159251
+        }
+    ],
+    "cardano": [
+        {
+            "usd": 0.45205
+        }
+    ],
+    "the-open-network": [
+        {
+            "usd": 6.48
+        }
+    ],
+    "shiba-inu": [
+        {
+            "usd": 2.501e-05
+        }
+    ],
+    "avalanche-2": [
+        {
+            "usd": 35.89
+        }
+    ],
+    "chainlink": [
+        {
+            "usd": 18.45
+        }
+    ],
+    "wrapped-bitcoin": [
+        {
+            "usd": 68243
+        }
+    ],
+    "tron": [
+        {
+            "usd": 0.114491
+        }
+    ],
+    "polkadot": [
+        {
+            "usd": 7.1
+        }
+    ],
+    "bitcoin-cash": [
+        {
+            "usd": 461.88
+        }
+    ],
+    "near": [
+        {
+            "usd": 7.37
+        }
+    ],
+    "uniswap": [
+        {
+            "usd": 9.72
+        }
+    ],
     "matic-network": [],
-    "litecoin": [],
-    "pepe": [],
-    "internet-computer": [],
+    "litecoin": [
+        83.09828416564127
+    ],
+    "pepe": [
+        8.96152442183104e-10
+    ],
+    "internet-computer": [
+        12.0722945481306
+    ],
     "leo-token": [],
     "fetch-ai": [],
-    "dai": [],
-    "wrapped-eeth": [],
-    "ethereum-classic": [],
-    "aptos": [],
+    "dai": [
+        0.9998836026735173
+    ],
+    "wrapped-eeth": [
+        3942.028339030016
+    ],
+    "ethereum-classic": [
+        29.40318505768413
+    ],
+    "aptos": [
+        9.039465369353902
+    ],
     "render-token": [],
-    "renzo-restaked-eth": [],
+    "renzo-restaked-eth": [
+        3744.563409904983
+    ],
     "hedera-hashgraph": [],
     "immutable-x": [],
-    "kaspa": [],
-    "arbitrum": [],
-    "cosmos": [],
-    "filecoin": [],
-    "mantle": [],
+    "kaspa": [
+        0.13908692963247818
+    ],
+    "arbitrum": [
+        1.1253788699826244
+    ],
+    "cosmos": [
+        8.378305989138964
+    ],
+    "filecoin": [
+        5.821507264005912
+    ],
+    "mantle": [
+        0.9906021366889627
+    ],
     "dogwifcoin": [],
     "stellar": [],
     "crypto-com-chain": [],
@@ -77,28 +183,109 @@
     "sei-network": [],
     "beam-2": [],
     "whitebit": [],
-    "ethena": [],
+    "ethena": [
+        {
+            "usd": 0.912387
+        }
+    ],
     "starknet": [],
     "flow": [],
-    "quant-network": [],
-    "chiliz": [],
-    "bitcoin-cash-sv": [],
-    "axie-infinity": [],
-    "dydx-chain": [],
-    "singularitynet": [],
-    "cheelee": [],
-    "kelp-dao-restaked-eth": [],
-    "bittorrent": [],
-    "zebec-protocol": [],
-    "flare-networks": [],
-    "wormhole": [],
-    "worldcoin-wld": [],
-    "akash-network": [],
-    "gatechain-token": [],
-    "elrond-erd-2": [],
-    "tokenize-xchange": [],
-    "neo": [],
+    "quant-network": [
+        {
+            "usd": 91.52
+        }
+    ],
+    "chiliz": [
+        {
+            "usd": 0.144545
+        }
+    ],
+    "bitcoin-cash-sv": [
+        {
+            "usd": 60.99
+        }
+    ],
+    "axie-infinity": [
+        {
+            "usd": 7.97
+        }
+    ],
+    "dydx-chain": [
+        {
+            "usd": 2.05
+        }
+    ],
+    "singularitynet": [
+        {
+            "usd": 0.891664
+        }
+    ],
+    "cheelee": [
+        {
+            "usd": 20.24
+        }
+    ],
+    "kelp-dao-restaked-eth": [
+        {
+            "usd": 3834.9
+        }
+    ],
+    "bittorrent": [
+        {
+            "usd": 1.16e-06
+        }
+    ],
+    "zebec-protocol": [
+        {
+            "usd": 0.02221938
+        }
+    ],
+    "flare-networks": [
+        {
+            "usd": 0.02715475
+        }
+    ],
+    "wormhole": [
+        {
+            "usd": 0.651309
+        }
+    ],
+    "worldcoin-wld": [
+        {
+            "usd": 4.82
+        }
+    ],
+    "akash-network": [
+        {
+            "usd": 4.65
+        }
+    ],
+    "gatechain-token": [
+        {
+            "usd": 8.25
+        }
+    ],
+    "elrond-erd-2": [
+        {
+            "usd": 38.59
+        }
+    ],
+    "tokenize-xchange": [
+        {
+            "usd": 12.89
+        }
+    ],
+    "neo": [
+        {
+            "usd": 14.75
+        }
+    ],
     "ordinals": [],
     "the-sandbox": [],
-    "ronin": []
+    "ronin": [],
+    "based-brett": [
+        {
+            "usd": 0.122896
+        }
+    ]
 }
