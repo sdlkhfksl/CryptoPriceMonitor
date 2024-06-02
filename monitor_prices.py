@@ -60,7 +60,7 @@ def load_price_history(file):
     if os.path.exists(file):
         with open(file, 'r') as f:
             return json.load(f)
-    return {coin: [] for coin in get_top_100_coins().keys()}
+    return {coin['id']: [] for coin in get_top_100_coins()}
 
 price_history = load_price_history(PRICE_HISTORY_FILE)
 
