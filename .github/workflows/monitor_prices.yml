@@ -44,6 +44,7 @@ jobs:
             git add $PRICE_HISTORY_FILE
             git commit -m "Add initial price history file"
             git push origin main
+        fi
 
     - name: Run monitor script
       env:
@@ -69,3 +70,4 @@ jobs:
             git push origin main
         else
             echo "No changes to commit."
+        fi
