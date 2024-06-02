@@ -17,6 +17,7 @@ API_KEYS = {
 
 # Function to fetch data from CoinGecko
 def fetch_from_coingecko(coin_ids):
+    print(f"Fetching data from CoinGecko for {coin_ids}")
     ids = ",".join(coin_ids)
     url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd"
     try:
@@ -29,6 +30,7 @@ def fetch_from_coingecko(coin_ids):
 
 # Function to fetch data from CoinMarketCap
 def fetch_from_coinmarketcap(coin_ids):
+    print(f"Fetching data from CoinMarketCap for {coin_ids}")
     url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
     headers = {
         'X-CMC_PRO_API_KEY': API_KEYS['COINMARKETCAP_API_KEY']
@@ -49,6 +51,7 @@ def fetch_from_coinmarketcap(coin_ids):
 
 # Function to fetch data from CryptoCompare
 def fetch_from_cryptocompare(coin_ids):
+    print(f"Fetching data from CryptoCompare for {coin_ids}")
     ids = ",".join(coin_ids)
     url = f"https://min-api.cryptocompare.com/data/pricemulti?fsyms={ids}&tsyms=USD&api_key={API_KEYS['CRYPTOCOMPARE_API_KEY']}"
     try:
@@ -61,6 +64,7 @@ def fetch_from_cryptocompare(coin_ids):
 
 # Function to fetch data from Messari
 def fetch_from_messari(coin_ids):
+    print(f"Fetching data from Messari for {coin_ids}")
     ids = ",".join(coin_ids)
     url = f"https://data.messari.io/api/v1/assets"
     headers = {
@@ -95,6 +99,7 @@ def send_telegram_message(message):
 
 # 获取市值排名前100的币种
 def get_top_100_coins():
+    print("Fetching top 100 coins from CoinGecko")
     url = "https://api.coingecko.com/api/v3/coins/markets"
     params = {
         'vs_currency': 'usd',
@@ -185,4 +190,5 @@ def monitor_prices(interval=600, threshold=0.05, history_file='price_history.jso
     check_price_changes()
 
 if __name__ == "__main__":
-    monitor_prices()
+    history_file = os.getenv('PRICE_HISTORY_FILE', 'price_history.json')
+    monitor_prices(history_file=history_file)
