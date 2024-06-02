@@ -14,9 +14,28 @@ API_KEYS = {
     'MESSARI_API_KEY': os.getenv('MESSARI_API_KEY')
 }
 
+# Function to get top 100 coins
+def get_top_100_coins():
+    print("Fetching top 100 coins from CoinGecko")
+    url = "https://api.coingecko.com/api/v3/coins/markets"
+    params = {
+        'vs_currency': 'usd',
+        'order': 'market_cap_desc',
+        'per_page': 100,
+        'page': 1
+    }
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        return [coin['id'] for coin in data]
+    except Exception as e:
+        print(f"Error fetching top 100 coins from CoinGecko: {e}")
+        return []
+
 # Function to dynamically generate ID mappings from different APIs
 def generate_id_mappings():
-    coingecko_map = {coin['id']: coin['id'] for coin in get_top_100_coins()}
+    coingecko_map = {coin: coin for coin in get_top_100_coins()}
     
     coinmarketcap_response = requests.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/map', headers={
         'X-CMC_PRO_API_KEY': API_KEYS['COINMARKETCAP_API_KEY']
@@ -124,25 +143,6 @@ def send_telegram_message(message):
         print(f"Telegram message sent: {message}")
     except requests.RequestException as e:
         print(f"Error sending message to Telegram: {e}")
-
-# Function to get top 100 coins
-def get_top_100_coins():
-    print("Fetching top 100 coins from CoinGecko")
-    url = "https://api.coingecko.com/api/v3/coins/markets"
-    params = {
-        'vs_currency': 'usd',
-        'order': 'market_cap_desc',
-        'per_page': 100,
-        'page': 1
-    }
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        data = response.json()
-        return [coin['id'] for coin in data]
-    except Exception as e:
-        print(f"Error fetching top 100 coins from CoinGecko: {e}")
-        return []
 
 # Function to load price history
 def load_price_history(filepath):
