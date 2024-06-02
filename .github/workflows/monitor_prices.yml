@@ -11,7 +11,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -21,14 +21,14 @@ jobs:
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v3
       with:
         python-version: '3.8'
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install requests python-dotenv
+        pip install requests
 
     - name: Load price history
       env:
@@ -44,7 +44,6 @@ jobs:
             git add $PRICE_HISTORY_FILE
             git commit -m "Add initial price history file"
             git push origin main
-        fi
 
     - name: Run monitor script
       env:
@@ -70,4 +69,3 @@ jobs:
             git push origin main
         else
             echo "No changes to commit."
-        fi
