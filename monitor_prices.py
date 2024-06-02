@@ -43,7 +43,7 @@ def generate_id_mappings():
     coinmarketcap_map = {coin['name'].lower().replace(' ', '-'): coin['symbol'] for coin in coinmarketcap_response.json()['data']}
     
     cryptocompare_response = requests.get('https://min-api.cryptocompare.com/data/all/coinlist?summary=true')
-    cryptocompare_map = {coin['FullName'].lower().replace(' ', '-'): coin['Name'] for coin in cryptocompare_response.json()['Data'].values()}
+    cryptocompare_map = {coin['FullName'].lower().replace(' ', '-'): coin['Name'] for coin in cryptocompare_response.json()['Data'].values() if 'FullName' in coin and 'Name' in coin}
     
     messari_response = requests.get('https://data.messari.io/api/v1/assets')
     messari_map = {coin['slug']: coin['id'] for coin in messari_response.json()['data']}
