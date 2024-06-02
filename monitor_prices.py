@@ -12,7 +12,6 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 PRICE_HISTORY_FILE = os.getenv("PRICE_HISTORY_FILE", "price_history.json")
 
 threshold = 0.05  # 5% price change threshold
-price_history = {}
 
 # Function to send a message via Telegram
 def send_telegram_message(message):
@@ -39,20 +38,20 @@ def get_top_100_coins():
     })
     return response.json()
 
-# Function to generate ID mappings for the top 100 coins
+# Function to generate ID mappings for the top 100 coins dynamically
 def generate_id_mappings():
     coingecko_map = {coin['id']: coin['id'] for coin in get_top_100_coins()}
 
     coinmarketcap_response = requests.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/map', headers={
         'X-CMC_PRO_API_KEY': COINMARKETCAP_API_KEY
     })
-    coinmarketcap_map = {coin['slug']: coin['id'] for coin in coinmarketcap_response.json()['data']}
-
+    coinmarketcap_map = {coin['slug']: coin['symbol'] for coin in coinmarketcap_response.json()['data']}
+    
     cryptocompare_response = requests.get('https://min-api.cryptocompare.com/data/all/coinlist', headers={
         'authorization': f'Apikey {CRYPTOCOMPARE_API_KEY}'
     })
-    cryptocompare_map = {coin['FullName'].lower().replace(' ', '-'): coin['Name'] for coin in cryptocompare_response.json()['Data'].values()}
-
+    cryptocompare_map = {coin['FullName'].lower().replace(' ', '-'): coin['Symbol'] for coin in cryptocompare_response.json()['Data'].values()}
+    
     messari_response = requests.get('https://data.messari.io/api/v1/assets')
     messari_map = {coin['slug']: coin['symbol'] for coin in messari_response.json()['data']}
 
@@ -62,8 +61,9 @@ coingecko_map, coinmarketcap_map, cryptocompare_map, messari_map = generate_id_m
 
 # Function to fetch prices from CoinGecko
 def fetch_from_coingecko(coins, current_prices):
+    ids = ','.join(coins)
     response = requests.get('https://api.coingecko.com/api/v3/simple/price', params={
-        'ids': ','.join(coins),
+        'ids': ids,
         'vs_currencies': 'usd'
     })
     current_prices.update(response.json())
@@ -145,8 +145,9 @@ def check_price_changes(batches):
         # Handle the case where price_info is a dictionary containing 'usd'
         if isinstance(price_info, dict):
             price = price_info['usd'] if 'usd' in price_info else None
-        else
+        else:
             price = price_info
+        
         if price is not None:
             if len(price_history[coin]) >= 3:
                 price_history[coin].pop(0)
