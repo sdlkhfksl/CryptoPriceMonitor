@@ -2,6 +2,7 @@ import requests
 import json
 import os
 import time
+import threading
 from multiprocessing import Manager
 
 # 从环境变量中获取配置信息
@@ -11,7 +12,9 @@ PRICE_HISTORY_FILE = os.getenv("PRICE_HISTORY_FILE", "price_history.json")
 
 threshold = 0.05  # 5% price change threshold
 batch_size = 20   # 每批处理的币种数量
+sub_batch_size = 5  # 子批次处理数量
 rate_limit_interval = 3  # 设置间隔时间为3秒
+interval_between_sub_batches = 1  # 子批次之间的时间间隔
 
 # Function to send a message via Telegram
 def send_telegram_message(message):
@@ -69,10 +72,22 @@ def check_price_changes(batches):
     manager = Manager()
     current_prices = manager.dict()
 
-    # Fetch prices for each batch
-    for batch in batches:
-        fetch_from_coingecko(batch, current_prices)
-        time.sleep(rate_limit_interval)  # 等待3秒以避免超过每分钟30次调用限制
+    def fetch_batches():
+        for batch in batches:
+            sub_batches = [batch[i:i + sub_batch_size] for i in range(0, len(batch), sub_batch_size)]
+            for sub_batch in sub_batches:
+                fetch_from_coingecko(sub_batch, current_prices)
+                time.sleep(interval_between_sub_batches)  # 子批次之间等待时间
+
+    threads = []
+    for i in range(0, len(batches), sub_batch_size):
+        t = threading.Thread(target=fetch_batches)
+        threads.append(t)
+        t.start()
+        time.sleep(rate_limit_interval)  # 每个主批次间隔时间
+
+    for t in threads:
+        t.join()
 
     print(f"Fetched current prices: {dict(current_prices)}")
 
