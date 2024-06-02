@@ -44,6 +44,7 @@ jobs:
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
       run: |
         python monitor_prices.py
+        cat price_history.json  # 打印文件内容以验证更新
 
     - name: Commit and Push changes
       env:
