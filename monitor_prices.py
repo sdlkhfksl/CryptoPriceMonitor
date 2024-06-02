@@ -7,6 +7,7 @@ from multiprocessing import Process, Manager
 COINMARKETCAP_API_KEY = os.getenv("COINMARKETCAP_API_KEY")
 CRYPTOCOMPARE_API_KEY = os.getenv("CRYPTOCOMPARE_API_KEY")
 MESSARI_API_KEY = os.getenv("MESSARI_API_KEY")
+COINPAPRIKA_API_KEY = os.getenv("COINPAPRIKA_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 PRICE_HISTORY_FILE = os.getenv("PRICE_HISTORY_FILE", "price_history.json")
@@ -55,9 +56,12 @@ def generate_id_mappings():
     messari_response = requests.get('https://data.messari.io/api/v1/assets')
     messari_map = {coin['slug']: coin['symbol'] for coin in messari_response.json()['data']}
 
-    return coingecko_map, coinmarketcap_map, cryptocompare_map, messari_map
+    coinpaprika_response = requests.get('https://api.coinpaprika.com/v1/coins')
+    coinpaprika_map = {coin['id']: coin['symbol'] for coin in coinpaprika_response.json()}
 
-coingecko_map, coinmarketcap_map, cryptocompare_map, messari_map = generate_id_mappings()
+    return coingecko_map, coinmarketcap_map, cryptocompare_map, messari_map, coinpaprika_map
+
+coingecko_map, coinmarketcap_map, cryptocompare_map, messari_map, coinpaprika_map = generate_id_mappings()
 
 # Function to fetch prices from CoinGecko
 def fetch_from_coingecko(coins, current_prices):
@@ -107,6 +111,15 @@ def fetch_from_messari(coins, current_prices):
         if 'data' in data and 'market_data' in data['data']:
             current_prices[symbol] = data['data']['market_data']['price_usd']
 
+# Function to fetch prices from CoinPaprika
+def fetch_from_coinpaprika(coins, current_prices):
+    for coin in coins:
+        if coin in coinpaprika_map:
+            symbol = coinpaprika_map[coin]
+            response = requests.get(f'https://api.coinpaprika.com/v1/tickers/{coin}')
+            data = response.json()
+            current_prices[coin] = data['quotes']['USD']['price']
+
 # Function to save price history to a file
 def save_price_history(price_history, file):
     with open(file, 'w') as f:
@@ -130,7 +143,7 @@ def check_price_changes(batches):
         Process(target=fetch_from_coinmarketcap, args=(batches[1], current_prices)),
         Process(target=fetch_from_cryptocompare, args=(batches[2], current_prices)),
         Process(target=fetch_from_messari, args=(batches[3], current_prices)),
-        Process(target=fetch_from_coingecko, args=(batches[4], current_prices))
+        Process(target=fetch_from_coinpaprika, args=(batches[4], current_prices))
     ]
 
     for process in processes:
@@ -172,7 +185,7 @@ if __name__ == "__main__":
         coins[20:40],     # 21-40 to CoinMarketCap
         coins[40:60],     # 41-60 to CryptoCompare
         coins[60:80],     # 61-80 to Messari
-        coins[80:100]     # 81-100 to CoinGecko or another API
+        coins[80:100]     # 81-100 to CoinPaprika or another API
     ]
 
     check_price_changes(batches)
