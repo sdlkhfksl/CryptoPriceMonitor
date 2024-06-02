@@ -145,9 +145,8 @@ def check_price_changes(batches):
         # Handle the case where price_info is a dictionary containing 'usd'
         if isinstance(price_info, dict):
             price = price_info['usd'] if 'usd' in price_info else None
-        else:
+        else
             price = price_info
-        
         if price is not None:
             if len(price_history[coin]) >= 3:
                 price_history[coin].pop(0)
