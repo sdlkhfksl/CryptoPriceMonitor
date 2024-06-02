@@ -2,7 +2,7 @@ name: Monitor Crypto Prices
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # 每10分钟运行一次
+    - cron: '*/5 * * * *'    # 每5分钟运行一次
   workflow_dispatch:
 
 jobs:
@@ -11,7 +11,9 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup Git
       run: |
@@ -19,7 +21,7 @@ jobs:
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v2
       with:
         python-version: '3.8'
 
@@ -29,11 +31,19 @@ jobs:
         pip install requests python-dotenv
 
     - name: Load price history
+      env:
+        PRICE_HISTORY_FILE: price_history.json
       run: |
-        git pull origin main
-        if [ ! -f price_history.json ]; then
-            echo "{}" > price_history.json
-        fi
+        echo "Checking for price history file..."
+        if [ -f $PRICE_HISTORY_FILE ]; then
+            echo "Price history file found. Pulling latest changes..."
+            git pull origin main
+        else
+            echo "Price history file does not exist. Creating a new one..."
+            echo "{}" > $PRICE_HISTORY_FILE
+            git add $PRICE_HISTORY_FILE
+            git commit -m "Add initial price history file"
+            git push origin main
 
     - name: Run monitor script
       env:
@@ -42,17 +52,20 @@ jobs:
         MESSARI_API_KEY: ${{ secrets.MESSARI_API_KEY }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        PRICE_HISTORY_FILE: price_history.json
       run: |
         python monitor_prices.py
-        cat price_history.json  # 打印文件内容以验证更新
 
-    - name: Commit and Push changes
+    - name: Commit and push price history
       env:
-        ACTIONS_PAT: ${{ secrets.ACTIONS_PAT }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PRICE_HISTORY_FILE: price_history.json
       run: |
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git config --local user.name "github-actions[bot]"
-        git remote set-url origin https://x-access-token:${{ secrets.ACTIONS_PAT }}@github.com/${{ github.repository }}.git
-        git add price_history.json
-        git commit -m "Update price history"
-        git push origin main
+        echo "Checking for changes before committing..."
+        git pull origin main
+        git add $PRICE_HISTORY_FILE
+        if git commit -m "Update price history"; then
+            echo "Pushing changes to the repository..."
+            git push origin main
+        else
+            echo "No changes to commit."
