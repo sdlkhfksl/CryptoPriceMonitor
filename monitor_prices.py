@@ -1,7 +1,7 @@
 import requests
 import json
 import os
-from multiprocessing import Process
+from multiprocessing import Process, Manager
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -35,25 +35,24 @@ def generate_id_mappings():
 coingecko_map, coinmarketcap_map, cryptocompare_map, messari_map = generate_id_mappings()
 
 # Function to fetch data from CoinGecko
-def fetch_from_coingecko(coin_ids):
+def fetch_from_coingecko(coin_ids, current_prices):
     print(f"Fetching data from CoinGecko for {coin_ids}")
     ids = ",".join(coin_ids)
     url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd"
     try:
         response = requests.get(url)
         response.raise_for_status()
-        return response.json()
+        current_prices.update(response.json())
     except Exception as e:
         print(f"Error fetching from CoinGecko: {e}")
-        return {}
 
 # Function to fetch data from CoinMarketCap
-def fetch_from_coinmarketcap(coin_ids):
+def fetch_from_coinmarketcap(coin_ids, current_prices):
     print(f"Fetching data from CoinMarketCap for {coin_ids}")
     ids = ",".join(coinmarketcap_map.get(coin, '') for coin in coin_ids if coin in coinmarketcap_map)
     if not ids:
         print(f"No valid CoinMarketCap IDs found for {coin_ids}")
-        return {}
+        return
     url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
     headers = {
         'X-CMC_PRO_API_KEY': API_KEYS['COINMARKETCAP_API_KEY']
@@ -66,34 +65,36 @@ def fetch_from_coinmarketcap(coin_ids):
         response = requests.get(url, headers=headers, params=params)
         response.raise_for_status()
         data = response.json()
-        return {coin: data['data'][coinmarketcap_map[coin]]['quote']['USD']['price'] for coin in coin_ids if coin in coinmarketcap_map}
+        for coin in coin_ids:
+            if coin in coinmarketcap_map:
+                current_prices[coin] = data['data'][coinmarketcap_map[coin]]['quote']['USD']['price']
     except Exception as e:
         print(f"Error fetching from CoinMarketCap: {e}")
-        return {}
 
 # Function to fetch data from CryptoCompare
-def fetch_from_cryptocompare(coin_ids):
+def fetch_from_cryptocompare(coin_ids, current_prices):
     print(f"Fetching data from CryptoCompare for {coin_ids}")
     ids = ",".join(cryptocompare_map.get(coin, '') for coin in coin_ids if coin in cryptocompare_map)
     if not ids:
         print(f"No valid CryptoCompare IDs found for {coin_ids}")
-        return {}
+        return
     url = f"https://min-api.cryptocompare.com/data/pricemulti?fsyms={ids}&tsyms=USD&api_key={API_KEYS['CRYPTOCOMPARE_API_KEY']}"
     try:
         response = requests.get(url)
         response.raise_for_status()
-        return {coin: response.json()[cryptocompare_map[coin]]['USD'] for coin in coin_ids if coin in cryptocompare_map}
+        for coin in coin_ids:
+            if coin in cryptocompare_map:
+                current_prices[coin] = response.json()[cryptocompare_map[coin]]['USD']
     except Exception as e:
         print(f"Error fetching from CryptoCompare: {e}")
-        return {}
 
 # Function to fetch data from Messari
-def fetch_from_messari(coin_ids):
+def fetch_from_messari(coin_ids, current_prices):
     print(f"Fetching data from Messari for {coin_ids}")
     ids = ",".join(messari_map.get(coin, '') for coin in coin_ids if coin in messari_map)
     if not ids:
         print(f"No valid Messari IDs found for {coin_ids}")
-        return {}
+        return
     url = f"https://data.messari.io/api/v1/assets?{ids}"
     headers = {
         'x-messari-api-key': API_KEYS['MESSARI_API_KEY']
@@ -102,10 +103,11 @@ def fetch_from_messari(coin_ids):
         response = requests.get(url, headers=headers)
         response.raise_for_status()
         data = response.json()
-        return {coin: data['data'][messari_map[coin]]['metrics']['market_data']['price_usd'] for coin in coin_ids if coin in messari_map}
+        for coin in coin_ids:
+            if coin in messari_map:
+                current_prices[coin] = data['data'][messari_map[coin]]['metrics']['market_data']['price_usd']
     except Exception as e:
         print(f"Error fetching from Messari: {e}")
-        return {}
 
 # Function to send message to Telegram
 def send_telegram_message(message):
@@ -185,13 +187,14 @@ def monitor_prices(interval=600, threshold=0.05, history_file='price_history.jso
             price_history[coin] = []
 
     def check_price_changes():
-        current_prices = {}
+        manager = Manager()
+        current_prices = manager.dict()
         processes = [
-            Process(target=lambda: current_prices.update(fetch_from_coingecko(batches[0]))),
-            Process(target=lambda: current_prices.update(fetch_from_coinmarketcap(batches[1]))),
-            Process(target=lambda: current_prices.update(fetch_from_cryptocompare(batches[2]))),
-            Process(target=lambda: current_prices.update(fetch_from_messari(batches[3]))),
-            Process(target=lambda: current_prices.update(fetch_from_coingecko(batches[4])))
+            Process(target=fetch_from_coingecko, args=(batches[0], current_prices)),
+            Process(target=fetch_from_coinmarketcap, args=(batches[1], current_prices)),
+            Process(target=fetch_from_cryptocompare, args=(batches[2], current_prices)),
+            Process(target=fetch_from_messari, args=(batches[3], current_prices)),
+            Process(target=fetch_from_coingecko, args=(batches[4], current_prices))
         ]
 
         for process in processes:
@@ -200,10 +203,12 @@ def monitor_prices(interval=600, threshold=0.05, history_file='price_history.jso
         for process in processes:
             process.join()
 
+        current_prices = dict(current_prices)
         print("Fetched current prices:", current_prices)
 
         for coin, price in current_prices.items():
-            if len(price_history[coin]) >=                price_history[coin].pop(0)
+            if len(price_history[coin]) >= 3:
+                price_history[coin].pop(0)
             price_history[coin].append(price)
             if len(price_history[coin]) == 3:  # 10 minutes, every 5 minutes 1 price
                 initial_price = price_history[coin][0]
