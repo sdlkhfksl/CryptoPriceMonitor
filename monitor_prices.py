@@ -7,7 +7,6 @@ from multiprocessing import Process, Manager
 COINMARKETCAP_API_KEY = os.getenv("COINMARKETCAP_API_KEY")
 CRYPTOCOMPARE_API_KEY = os.getenv("CRYPTOCOMPARE_API_KEY")
 MESSARI_API_KEY = os.getenv("MESSARI_API_KEY")
-COINPAPRIKA_API_KEY = os.getenv("COINPAPRIKA_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 PRICE_HISTORY_FILE = os.getenv("PRICE_HISTORY_FILE", "price_history.json")
@@ -115,7 +114,6 @@ def fetch_from_messari(coins, current_prices):
 def fetch_from_coinpaprika(coins, current_prices):
     for coin in coins:
         if coin in coinpaprika_map:
-            symbol = coinpaprika_map[coin]
             response = requests.get(f'https://api.coinpaprika.com/v1/tickers/{coin}')
             data = response.json()
             current_prices[coin] = data['quotes']['USD']['price']
