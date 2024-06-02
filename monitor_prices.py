@@ -1,10 +1,9 @@
 import requests
 import json
-import time
-from multiprocessing import Process, Manager
 import os
-import telegram
+from multiprocessing import Process, Manager
 
+# 从环境变量中获取API密钥和其他配置信息
 COINMARKETCAP_API_KEY = os.getenv("COINMARKETCAP_API_KEY")
 CRYPTOCOMPARE_API_KEY = os.getenv("CRYPTOCOMPARE_API_KEY")
 MESSARI_API_KEY = os.getenv("MESSARI_API_KEY")
@@ -17,8 +16,17 @@ price_history = {}
 
 # Function to send a message via Telegram
 def send_telegram_message(message):
-    bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
-    bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': TELEGRAM_CHAT_ID,
+        'text': message
+    }
+    try:
+        response = requests.post(url, data=payload)
+        response.raise_for_status()
+        print(f"Telegram message sent: {message}")
+    except requests.RequestException as e:
+        print(f"Error sending message to Telegram: {e}")
 
 # Function to fetch top 100 coins from CoinGecko
 def get_top_100_coins():
@@ -114,7 +122,7 @@ def load_price_history(file):
 price_history = load_price_history(PRICE_HISTORY_FILE)
 
 # Function to check for significant price changes
-def check_price_changes():
+def check_price_changes(batches):
     manager = Manager()
     current_prices = manager.dict()
     processes = [
@@ -156,11 +164,15 @@ def check_price_changes():
 
     save_price_history(price_history, PRICE_HISTORY_FILE)
 
-# Main function to monitor prices
-def monitor_prices(history_file):
-    while True:
-        check_price_changes()
-        time.sleep(300)  # Wait for 5 minutes before checking again
-
 if __name__ == "__main__":
-    monitor_prices(PRICE_HISTORY_FILE)
+    coins = list(coingecko_map.keys())
+    n_coins = len(coins)
+    batches = [
+        coins[0:20],      # 1-20 to CoinGecko
+        coins[20:40],     # 21-40 to CoinMarketCap
+        coins[40:60],     # 41-60 to CryptoCompare
+        coins[60:80],     # 61-80 to Messari
+        coins[80:100]     # 81-100 to CoinGecko or another API
+    ]
+
+    check_price_changes(batches)
