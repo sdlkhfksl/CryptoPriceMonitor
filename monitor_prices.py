@@ -69,7 +69,10 @@ def fetch_from_coingecko(coins, current_prices):
         'ids': ids,
         'vs_currencies': 'usd'
     })
-    current_prices.update(response.json())
+    if response.status_code == 200:
+        current_prices.update(response.json())
+    else:
+        print(f"Error fetching from CoinGecko: {response.status_code}, {response.text}")
 
 # Function to fetch prices from CoinMarketCap
 def fetch_from_coinmarketcap(coins, current_prices):
@@ -78,12 +81,15 @@ def fetch_from_coinmarketcap(coins, current_prices):
         response = requests.get(f'https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?id={",".join(map(str, coin_ids))}', headers={
             'X-CMC_PRO_API_KEY': COINMARKETCAP_API_KEY
         })
-        data = response.json()['data']
-        for coin in coins:
-            if coin in coinmarketcap_map:
-                coin_id = coinmarketcap_map[coin]
-                if str(coin_id) in data:
-                    current_prices[coin] = data[str(coin_id)]['quote']['USD']['price']
+        if response.status_code == 200:
+            data = response.json().get('data', {})
+            for coin in coins:
+                if coin in coinmarketcap_map:
+                    coin_id = coinmarketcap_map[coin]
+                    if str(coin_id) in data:
+                        current_prices[coin] = data[str(coin_id)]['quote']['USD']['price']
+        else:
+            print(f"Error fetching from CoinMarketCap: {response.status_code}, {response.text}")
 
 # Function to fetch prices from CryptoCompare
 def fetch_from_cryptocompare(coins, current_prices):
@@ -92,12 +98,15 @@ def fetch_from_cryptocompare(coins, current_prices):
         response = requests.get(f'https://min-api.cryptocompare.com/data/pricemulti?fsyms={",".join(coin_symbols)}&tsyms=USD', headers={
             'authorization': f'Apikey {CRYPTOCOMPARE_API_KEY}'
         })
-        data = response.json()
-        for coin in coins:
-            if coin in cryptocompare_map:
-                symbol = cryptocompare_map[coin]
-                if symbol in data:
-                    current_prices[coin] = data[symbol]['USD']
+        if response.status_code == 200:
+            data = response.json()
+            for coin in coins:
+                if coin in cryptocompare_map:
+                    symbol = cryptocompare_map[coin]
+                    if symbol in data:
+                        current_prices[coin] = data[symbol]['USD']
+        else:
+            print(f"Error fetching from CryptoCompare: {response.status_code}, {response.text}")
 
 # Function to fetch prices from Messari
 def fetch_from_messari(coins, current_prices):
@@ -106,17 +115,23 @@ def fetch_from_messari(coins, current_prices):
         response = requests.get(f'https://data.messari.io/api/v1/assets/{symbol}/metrics/market-data', headers={
             'x-messari-api-key': MESSARI_API_KEY
         })
-        data = response.json()
-        if 'data' in data and 'market_data' in data['data']:
-            current_prices[symbol] = data['data']['market_data']['price_usd']
+        if response.status_code == 200:
+            data = response.json()
+            if 'data' in data and 'market_data' in data['data']:
+                current_prices[symbol] = data['data']['market_data']['price_usd']
+        else:
+            print(f"Error fetching from Messari: {response.status_code}, {response.text}")
 
 # Function to fetch prices from CoinPaprika
 def fetch_from_coinpaprika(coins, current_prices):
     for coin in coins:
         if coin in coinpaprika_map:
             response = requests.get(f'https://api.coinpaprika.com/v1/tickers/{coin}')
-            data = response.json()
-            current_prices[coin] = data['quotes']['USD']['price']
+            if response.status_code == 200:
+                data = response.json()
+                current_prices[coin] = data['quotes']['USD']['price']
+            else:
+                print(f"Error fetching from CoinPaprika: {response.status_code}, {response.text}")
 
 # Function to save price history to a file
 def save_price_history(price_history, file):
@@ -165,7 +180,7 @@ def check_price_changes(batches):
             price_history[coin].append(price)
             if len(price_history[coin]) == 3:  # 10 minutes, every 5 minutes 1 price
                 initial_price = price_history[coin][0]
-                latest_price = price_history[coin][-1]
+                latest_price = price_history[coin][-1]                
                 price_change = (latest_price - initial_price) / initial_price
                 if abs(price_change) >= threshold:
                     change_pct = price_change * 100
