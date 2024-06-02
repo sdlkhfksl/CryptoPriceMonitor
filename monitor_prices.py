@@ -1,5 +1,4 @@
 import requests
-import time
 import json
 import os
 from multiprocessing import Process
@@ -31,13 +30,13 @@ def fetch_from_coingecko(coin_ids):
 # Function to fetch data from CoinMarketCap
 def fetch_from_coinmarketcap(coin_ids):
     print(f"Fetching data from CoinMarketCap for {coin_ids}")
+    ids = ",".join([get_coinmarketcap_id(coin) for coin in coin_ids])
     url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
     headers = {
         'X-CMC_PRO_API_KEY': API_KEYS['COINMARKETCAP_API_KEY']
     }
-    ids = ",".join(coin_ids)
     params = {
-        'id': ids,
+        'symbol': ids,
         'convert': 'USD'
     }
     try:
@@ -52,12 +51,12 @@ def fetch_from_coinmarketcap(coin_ids):
 # Function to fetch data from CryptoCompare
 def fetch_from_cryptocompare(coin_ids):
     print(f"Fetching data from CryptoCompare for {coin_ids}")
-    ids = ",".join(coin_ids)
+    ids = ",".join([get_cryptocompare_id(coin) for coin in coin_ids])
     url = f"https://min-api.cryptocompare.com/data/pricemulti?fsyms={ids}&tsyms=USD&api_key={API_KEYS['CRYPTOCOMPARE_API_KEY']}"
     try:
         response = requests.get(url)
         response.raise_for_status()
-        return {coin: response.json()[coin]['USD'] for coin in coin_ids}
+        return {coin: response.json()[get_cryptocompare_id(coin)]['USD'] for coin in coin_ids}
     except Exception as e:
         print(f"Error fetching from CryptoCompare: {e}")
         return {}
@@ -65,7 +64,7 @@ def fetch_from_cryptocompare(coin_ids):
 # Function to fetch data from Messari
 def fetch_from_messari(coin_ids):
     print(f"Fetching data from Messari for {coin_ids}")
-    ids = ",".join(coin_ids)
+    ids = ",".join([get_messari_id(coin) for coin in coin_ids])
     url = f"https://data.messari.io/api/v1/assets"
     headers = {
         'x-messari-api-key': API_KEYS['MESSARI_API_KEY']
@@ -82,6 +81,21 @@ def fetch_from_messari(coin_ids):
         print(f"Error fetching from Messari: {e}")
         return {}
 
+# Function to get CoinMarketCap ID for a given coin
+def get_coinmarketcap_id(coin):
+    # Placeholder function to map coin names to CoinMarketCap IDs
+    return coin.upper()  # Placeholder logic, you should replace this with your actual mapping logic
+
+# Function to get CryptoCompare ID for a given coin
+def get_cryptocompare_id(coin):
+    # Placeholder function to map coin names to CryptoCompare IDs
+    return coin.upper()  # Placeholder logic, you should replace this with your actual mapping logic
+
+# Function to get Messari ID for a given coin
+def get_messari_id(coin):
+    # Placeholder function to map coin names to Messari IDs
+    return coin.lower()  # Placeholder logic, you should replace this with your actual mapping logic
+
 # 发送消息到Telegram
 def send_telegram_message(message):
     token = os.getenv('TELEGRAM_BOT_TOKEN')
@@ -94,6 +108,7 @@ def send_telegram_message(message):
     try:
         response = requests.post(url, data=payload)
         response.raise_for_status()
+        print(f"Telegram message sent: {message}")
     except requests.RequestException as e:
         print(f"Error sending message to Telegram: {e}")
 
@@ -132,6 +147,7 @@ def save_price_history(price_history, filepath):
     with open(filepath, 'w') as f:
         try:
             json.dump(price_history, f, indent=4)
+            print(f"Saved price history to {filepath}")
         except Exception as e:
             print(f"Error saving JSON to {filepath}: {e}")
 
@@ -190,5 +206,4 @@ def monitor_prices(interval=600, threshold=0.05, history_file='price_history.jso
     check_price_changes()
 
 if __name__ == "__main__":
-    history_file = os.getenv('PRICE_HISTORY_FILE', 'price_history.json')
-    monitor_prices(history_file=history_file)
+    monitor_prices()
