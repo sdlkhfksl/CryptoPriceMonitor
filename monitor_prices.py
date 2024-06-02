@@ -2,7 +2,7 @@ import requests
 import json
 import os
 import time
-from multiprocessing import Manager, Process
+from multiprocessing import Manager
 
 # 从环境变量中获取配置信息
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -69,14 +69,10 @@ def check_price_changes(batches):
     manager = Manager()
     current_prices = manager.dict()
 
-    def fetch_batches():
-        for batch in batches:
-            fetch_from_coingecko(batch, current_prices)
-            time.sleep(rate_limit_interval)
-
-    process = Process(target=fetch_batches)
-    process.start()
-    process.join()
+    # Fetch prices for each batch
+    for batch in batches:
+        fetch_from_coingecko(batch, current_prices)
+        time.sleep(rate_limit_interval)  # 等待3秒以避免超过每分钟30次调用限制
 
     print(f"Fetched current prices: {dict(current_prices)}")
 
@@ -93,6 +89,11 @@ def check_price_changes(batches):
             if len(price_history[coin]) == 3:  # 10 minutes, every 5 minutes 1 price
                 initial_price = price_history[coin][0]
                 latest_price = price_history[coin][-1]
+                # Ensure both initial_price and latest_price are floats
+                if isinstance(initial_price, dict):
+                    initial_price = initial_price['usd']
+                if isinstance(latest_price, dict):
+                    latest_price = latest_price['usd']
                 price_change = (latest_price - initial_price) / initial_price
                 if abs(price_change) >= threshold:
                     change_pct = price_change * 100
