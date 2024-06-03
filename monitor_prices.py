@@ -98,8 +98,9 @@ def check_price_changes(batches):
                     latest_price = latest_price.get('usd', latest_price)
                 price_change = (latest_price - initial_price) / initial_price
                 if abs(price_change) >= threshold:
+                    change_type = "up" if price_change > 0 else "down"
                     change_pct = price_change * 100
-                    msg = f"Coin {coin}: Price changed by {change_pct:.2f}% over the last 10 minutes."
+                    msg = f"Coin {coin}: Price went {change_type} by {change_pct:.2f}% over the last 10 minutes."
                     print(msg)
                     send_telegram_message(msg)
 
