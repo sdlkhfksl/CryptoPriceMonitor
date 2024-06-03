@@ -38,7 +38,6 @@ def get_top_100_coins():
         'page': 1,
         'sparkline': False
     })
-    response.raise_for_status()
     return response.json()
 
 # Function to generate ID mappings for the top 100 coins dynamically
@@ -48,21 +47,17 @@ def generate_id_mappings():
     coinmarketcap_response = requests.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/map', headers={
         'X-CMC_PRO_API_KEY': COINMARKETCAP_API_KEY
     })
-    coinmarketcap_response.raise_for_status()
-    coinmarketcap_map = {coin['slug']: coin['id'] for coin in coinmarketcap_response.json()['data']}
+    coinmarketcap_map = {coin['slug']: coin['symbol'] for coin in coinmarketcap_response.json()['data']}
     
     cryptocompare_response = requests.get('https://min-api.cryptocompare.com/data/all/coinlist', headers={
         'authorization': f'Apikey {CRYPTOCOMPARE_API_KEY}'
     })
-    cryptocompare_response.raise_for_status()
     cryptocompare_map = {coin['FullName'].lower().replace(' ', '-'): coin['Symbol'] for coin in cryptocompare_response.json()['Data'].values()}
     
     messari_response = requests.get('https://data.messari.io/api/v1/assets')
-    messari_response.raise_for_status()
     messari_map = {coin['slug']: coin['symbol'] for coin in messari_response.json()['data']}
 
     coinpaprika_response = requests.get('https://api.coinpaprika.com/v1/coins')
-    coinpaprika_response.raise_for_status()
     coinpaprika_map = {coin['id']: coin['symbol'] for coin in coinpaprika_response.json()}
 
     mappings = {
@@ -199,43 +194,26 @@ def check_price_changes(batches):
     print(f"Fetched current prices: {dict(current_prices)}")
 
     for coin, price_info in current_prices.items():
-        # Handle the case where price_info is a dictionary containing 'usd'
         if isinstance(price_info, dict):
-            price = price_info['usd'] if 'usd' in price_info else None
+            price = price_info.get('usd', None)
         else:
             price = price_info
         
         if price is not None:
             if len(price_history[coin]) >= 3:
-                price_history[coin].pop(0)
-            price_history[coin].append(price)
-            if len(price_history[coin]) == 3:  # 10 minutes, every 5 minutes 1 price
-                initial_price = price_history[coin][0]
-                latest_price = price_history[coin][-1]
-                # Ensure both initial_price and latest_price are floats
-                if isinstance(initial_price, dict):
-                    initial_price = initial_price.get('usd', initial_price)
-                if isinstance(latest_price, dict):
-                    latest_price = latest_price.get('usd', latest_price)
-                price_change = (latest_price - initial_price) / initial_price
+                previous_price = price_history[coin][-3]['price']
+                price_change = (price - previous_price) / previous_price
                 if abs(price_change) >= threshold:
-                    change_type = "up" if price_change > 0 else "down"
-                    change_pct = price_change * 100
-                    msg = f"Coin {coin}: Price went {change_type} by {change_pct:.2f}% over the last 10 minutes."
-                    print(msg)
-                    send_telegram_message(msg)
+                    direction = "up" if price_change > 0 else "down"
+                    message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 15 minutes. Current price: ${price:.2f}"
+                    send_telegram_message(message)
+            price_history[coin].append({'timestamp': time.time(), 'price': price})
 
-    save_price_history(price_history, PRICE_HISTORY_FILE)
+# Split coins into batches for fetching from different sources
+def split_into_batches(coins):
+    return [coins[i::5] for i in range(5)]
 
-if __name__ == "__main__":
-    coins = list(coingecko_map.keys())
-    n_coins = len(coins)
-    batches = [
-        coins[0:20],      # 1-20 to CoinGecko
-        coins[20:40],     # 21-40 to CoinMarketCap
-        coins[40:60],     # 41-60 to CryptoCompare
-        coins[60:80],     # 61-80 to Messari
-        coins[80:100]     # 81-100 to CoinPaprika or another API
-    ]
+batches = split_into_batches(list(coingecko_map.keys()))
 
-    check_price_changes(batches)
+check_price_changes(batches)
+save_price_history(price_history, PRICE_HISTORY_FILE)
