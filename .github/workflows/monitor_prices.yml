@@ -42,7 +42,7 @@ jobs:
     - name: Run monitor script
       env:
         COINMARKETCAP_API_KEY: ${{ secrets.COINMARKETCAP_API_KEY }}
-        CRYPTOCOMPARE_API_KEY: ${{ secrets.CRYPTOCOMPARE_API_KEY }}
+        CRYPTOCOMPARE_API_KEY: %{{ secrets.CRYPTOCOMPARE_API_KEY }}
         MESSARI_API_KEY: ${{ secrets.MESSARI_API_KEY }}
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -65,3 +65,4 @@ jobs:
         else
             git commit -m "Update price history"
             git push origin main
+        fi
