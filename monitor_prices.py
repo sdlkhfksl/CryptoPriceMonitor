@@ -4,13 +4,14 @@ import os
 import time
 from multiprocessing import Process, Manager
 
+# 从环境变量中获取API密钥和其他配置信息
 COINMARKETCAP_API_KEY = os.getenv("COINMARKETCAP_API_KEY")
 CRYPTOCOMPARE_API_KEY = os.getenv("CRYPTOCOMPARE_API_KEY")
 MESSARI_API_KEY = os.getenv("MESSARI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 PRICE_HISTORY_FILE = os.getenv("PRICE_HISTORY_FILE", "price_history.json")
-ID_MAPPINGS_FILE = "id_mappings.json"
+ID_MAPPINGS_FILE = os.getenv("ID_MAPPINGS_FILE", "id_mappings.json")
 
 threshold = 0.05  # 5% price change threshold
 time_window = 10 * 60  # 10 minutes in seconds
@@ -22,7 +23,7 @@ def send_telegram_message(message):
         'text': message
     }
     try:
-        response = requests.post(url, data=payload)
+        response = requests.post(url, json=payload)
         response.raise_for_status()
         print(f"Telegram message sent: {message}")
     except requests.RequestException as e:
@@ -31,7 +32,12 @@ def send_telegram_message(message):
 def load_id_mappings():
     if os.path.exists(ID_MAPPINGS_FILE):
         with open(ID_MAPPINGS_FILE, 'r') as f:
-            return json.load(f)
+            mappings = json.load(f)
+            required_keys = ['coingecko', 'coinmarketcap', 'cryptocompare', 'messari', 'coinpaprika']
+            for key in required_keys:
+                if key not in mappings:
+                    raise KeyError(f"Key {key} is missing from ID mappings.")
+            return mappings
     raise FileNotFoundError(f"{ID_MAPPINGS_FILE} not found. Please run the ID mappings generation script.")
 
 mappings = load_id_mappings()
