@@ -16,6 +16,7 @@ ID_MAPPINGS_FILE = os.getenv("ID_MAPPINGS_FILE", "id_mappings.json")
 threshold = 0.05  # 5% price change threshold
 time_window = 10 * 60  # 10 minutes in seconds
 
+# 发送Telegram消息
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -29,6 +30,7 @@ def send_telegram_message(message):
     except requests.RequestException as e:
         print(f"Error sending message to Telegram: {e}")
 
+# 加载ID映射
 def load_id_mappings():
     if os.path.exists(ID_MAPPINGS_FILE):
         with open(ID_MAPPINGS_FILE, 'r') as f:
@@ -40,13 +42,15 @@ def load_id_mappings():
             return mappings
     raise FileNotFoundError(f"{ID_MAPPINGS_FILE} not found. Please run the ID mappings generation script.")
 
+# 加载并检查ID映射
 mappings = load_id_mappings()
 coingecko_map = mappings['coingecko']
-coinmarketcap_map = mappings['coinmarketcap']
+coinmarketcap_map = {k: str(v) for k, v in mappings['coinmarketcap'].items()}  # 确保所有值为字符串
 cryptocompare_map = mappings['cryptocompare']
 messari_map = mappings['messari']
 coinpaprika_map = mappings['coinpaprika']
 
+# 从CoinGecko获取价格
 def fetch_from_coingecko(coins, current_prices):
     ids = ','.join(coins)
     response = requests.get('https://api.coingecko.com/api/v3/simple/price', params={
@@ -58,10 +62,11 @@ def fetch_from_coingecko(coins, current_prices):
     else:
         print(f"Error fetching from CoinGecko: {response.status_code}, {response.text}")
 
+# 从CoinMarketCap获取价格
 def fetch_from_coinmarketcap(coins, current_prices):
     coin_ids = [coinmarketcap_map[coin] for coin in coins if coin in coinmarketcap_map]
     if coin_ids:
-        response = requests.get(f'https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?id={",".join(map(str, coin_ids))}', headers={
+        response = requests.get(f'https://pro-api.coinmarketcap.com/v2/cryptocurrency/quotes/latest?id={",".join(coin_ids)}', headers={
             'X-CMC_PRO_API_KEY': COINMARKETCAP_API_KEY
         })
         if response.status_code == 200:
@@ -69,11 +74,12 @@ def fetch_from_coinmarketcap(coins, current_prices):
             for coin in coins:
                 if coin in coinmarketcap_map:
                     coin_id = coinmarketcap_map[coin]
-                    if str(coin_id) in data:
-                        current_prices[coin] = data[str(coin_id)]['quote']['USD']['price']
+                    if coin_id in data:
+                        current_prices[coin] = data[coin_id]['quote']['USD']['price']
         else:
             print(f"Error fetching from CoinMarketCap: {response.status_code}, {response.text}")
 
+# 从CryptoCompare获取价格
 def fetch_from_cryptocompare(coins, current_prices):
     coin_symbols = [cryptocompare_map[coin] for coin in coins if coin in cryptocompare_map]
     if coin_symbols:
@@ -90,6 +96,7 @@ def fetch_from_cryptocompare(coins, current_prices):
         else:
             print(f"Error fetching from CryptoCompare: {response.status_code}, {response.text}")
 
+# 从Messari获取价格
 def fetch_from_messari(coins, current_prices):
     coin_symbols = [messari_map[coin] for coin in coins if coin in messari_map]
     for symbol in coin_symbols:
@@ -103,6 +110,7 @@ def fetch_from_messari(coins, current_prices):
         else:
             print(f"Error fetching from Messari: {response.status_code}, {response.text}")
 
+# 从CoinPaprika获取价格
 def fetch_from_coinpaprika(coins, current_prices):
     for coin in coins:
         if coin in coinpaprika_map:
@@ -113,10 +121,12 @@ def fetch_from_coinpaprika(coins, current_prices):
             else:
                 print(f"Error fetching from CoinPaprika: {response.status_code}, {response.text}")
 
+# 保存价格历史
 def save_price_history(price_history, file):
     with open(file, 'w') as f:
         json.dump(price_history, f, indent=4)
 
+# 加载价格历史
 def load_price_history(file):
     if os.path.exists(file):
         with open(file, 'r') as f:
@@ -125,6 +135,7 @@ def load_price_history(file):
 
 price_history = load_price_history(PRICE_HISTORY_FILE)
 
+# 检查并处理价格变化
 def check_price_changes(batches):
     manager = Manager()
     current_prices = manager.dict()
@@ -151,23 +162,27 @@ def check_price_changes(batches):
             price = price_info
 
         if len(price_history[coin]) >= 2:
-            previous_timestamp = price_history[coin][-2]['timestamp']
-            previous_price = price_history[coin][-2]['price']
+            if isinstance(price_history[coin][-2], dict):  # 确保价格记录为字典
+                previous_timestamp = price_history[coin][-2]['timestamp']
+                previous_price = price_history[coin][-2]['price']
 
-            # Check if the previous price was recorded within the last 10 minutes
-            if time.time() - previous_timestamp <= time_window:
-                price_change = (price - previous_price) / previous_price
-                if abs(price_change) >= threshold:
-                    direction = "up" if price_change > 0 else "down"
-                    message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 10 minutes. Current price: ${price:.2f}"
-                    send_telegram_message(message)
+                # Check if the previous price was recorded within the last 10 minutes
+                if time.time() - previous_timestamp <= time_window:
+                    price_change = (price - previous_price) / previous_price
+                    if abs(price_change) >= threshold:
+                        direction = "up" if price_change > 0 else "down"
+                        message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 10 minutes. Current price: ${price:.2f}"
+                        send_telegram_message(message)
 
         price_history[coin].append({'timestamp': time.time(), 'price': price})
 
+# 分批处理币种列表
 def split_into_batches(coins):
     return [coins[i::5] for i in range(5)]
 
 batches = split_into_batches(list(coingecko_map.keys()))
 
+# 检查价格变化
 check_price_changes(batches)
+# 保存价格历史
 save_price_history(price_history, PRICE_HISTORY_FILE)
