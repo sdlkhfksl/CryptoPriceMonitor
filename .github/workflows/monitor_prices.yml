@@ -6,19 +6,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-monitor:
+  monitor-prices:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Set up Git
-      run: |
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
     - name: Set up Python
       uses: actions/setup-python@v3
@@ -35,28 +28,15 @@ jobs:
         PRICE_HISTORY_FILE: price_history.json
       run: |
         echo "Checking for price history file..."
-        git pull origin main
-        if [ ! -f "$PRICE_HISTORY_FILE" ]; then
+        if [ -f $PRICE_HISTORY_FILE ]; then
+            echo "Price history file found. Pulling latest changes..."
+            git pull origin main
+        else:
             echo "Price history file does not exist. Creating a new one..."
             echo "{}" > $PRICE_HISTORY_FILE
             git add $PRICE_HISTORY_FILE
             git commit -m "Add initial price history file"
             git push origin main
-        else
-            echo "Price history file found."
-        fi
-
-    - name: Check and generate ID mappings
-      run: |
-        if [ ! -f "id_mappings.json" ]; then
-            echo "ID mappings file does not exist. Generating a new one..."
-            python -c "from monitor_prices import generate_id_mappings; generate_id_mappings()"
-            git add id_mappings.json
-            git commit -m "Add initial ID mappings file"
-            git push origin main
-        else
-            echo "ID mappings file found."
-        fi
 
     - name: Run monitor script
       env:
@@ -66,7 +46,6 @@ jobs:
         TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
         TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         PRICE_HISTORY_FILE: price_history.json
-        ID_MAPPINGS_FILE: id_mappings.json
       run: |
         python monitor_prices.py
 
@@ -74,16 +53,9 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         PRICE_HISTORY_FILE: price_history.json
-        ID_MAPPINGS_FILE: id_mappings.json
       run: |
         echo "Checking for changes before committing..."
         git pull origin main
-        git add $PRICE_HISTORY_FILE $ID_MAPPINGS_FILE
-        if git diff --cached --quiet; then
-            echo "No changes to commit."
-        else
-            echo "Committing changes..."
-            git commit -m "Update price history and ID mappings"
-            echo "Pushing changes to the repository..."
-            git push origin main
-        fi
+        git add $PRICE_HISTORY_FILE
+        git commit -m "Update price history"
+        git push origin main
