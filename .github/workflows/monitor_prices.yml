@@ -58,5 +58,9 @@ jobs:
         echo "Checking for changes before committing..."
         git pull origin main
         git add $PRICE_HISTORY_FILE
-        git commit -m "Update price history"
-        git push origin main
+        if git diff --cached --exit-code; then
+            echo "No changes to commit."
+        else
+            git commit -m "Update price history"
+            git push origin main
+        fi
