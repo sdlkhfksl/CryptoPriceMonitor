@@ -22,8 +22,8 @@ def generate_id_mappings():
     coinmarketcap_response = requests.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/map', headers={
         'X-CMC_PRO_API_KEY': COINMARKETCAP_API_KEY
     })
-    coinmarketcap_map = {coin['slug']: coin['symbol'] for coin in coinmarketcap_response.json()['data']}
-    
+    coinmarketcap_map = {coin['id']: coin['id'] for coin in coinmarketcap_response.json()['data']}
+
     cryptocompare_response = requests.get('https://min-api.cryptocompare.com/data/all/coinlist', headers={
         'authorization': f'Apikey {CRYPTOCOMPARE_API_KEY}'
     })
