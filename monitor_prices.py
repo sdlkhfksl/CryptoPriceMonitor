@@ -10,8 +10,8 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 PRICE_HISTORY_FILE = os.getenv("PRICE_HISTORY_FILE", "price_history.json")
 
 threshold = 0.05  # 5% price change threshold
-batch_size = 5   # 每批处理的币种数量改为5
-rate_limit_interval = 10  # 设置间隔时间为10秒
+batch_size = 5    # 每批处理的币种数量改为5
+rate_limit_interval = 15  # 设置间隔时间为15秒
 
 # Function to send a message via Telegram
 def send_telegram_message(message):
@@ -72,28 +72,30 @@ def check_price_changes(batches):
     # Fetch prices for each batch
     for batch in batches:
         fetch_from_coingecko(batch, current_prices)
-        time.sleep(rate_limit_interval)  # 等待10秒以避免超过每分钟30次调用限制
+        time.sleep(rate_limit_interval)  # 增加间隔时间到15秒以避免超过调用限额
 
     print(f"Fetched current prices: {dict(current_prices)}")
 
     for coin, price_info in current_prices.items():
         if isinstance(price_info, dict):
-            price = price_info['usd'] if 'usd' in price_info else None
+            price = price_info.get('usd')
         else:
             price = price_info
         
         if price is not None:
+            if coin not in price_history:
+                price_history[coin] = []  # 如果缺少键则自动添加
             if len(price_history[coin]) >= 3:
                 price_history[coin].pop(0)
             price_history[coin].append(price)
             if len(price_history[coin]) == 3:  # 10 minutes, every 5 minutes 1 price
                 initial_price = price_history[coin][0]
                 latest_price = price_history[coin][-1]
-                # Ensure both initial_price and latest_price are floats
+                # 确保初始和最新价格都是浮点数
                 if isinstance(initial_price, dict):
-                    initial_price = initial_price['usd']
+                    initial_price = initial_price.get('usd', initial_price)
                 if isinstance(latest_price, dict):
-                    latest_price = latest_price['usd']
+                    latest_price = latest_price.get('usd', latest_price)
                 price_change = (latest_price - initial_price) / initial_price
                 if abs(price_change) >= threshold:
                     change_pct = price_change * 100
