@@ -33,7 +33,6 @@ jobs:
     - name: Load price history
       env:
         PRICE_HISTORY_FILE: price_history.json
-        ID_MAPPINGS_FILE: id_mappings.json
       run: |
         echo "Checking for price history file..."
         git pull origin main
@@ -45,6 +44,18 @@ jobs:
             git push origin main
         else
             echo "Price history file found."
+        fi
+
+    - name: Check and generate ID mappings
+      run: |
+        if [ ! -f "id_mappings.json" ]; then
+            echo "ID mappings file does not exist. Generating a new one..."
+            python -c "from monitor_prices import generate_id_mappings; generate_id_mappings()"
+            git add id_mappings.json
+            git commit -m "Add initial ID mappings file"
+            git push origin main
+        else
+            echo "ID mappings file found."
         fi
 
     - name: Run monitor script
