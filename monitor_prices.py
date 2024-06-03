@@ -13,6 +13,7 @@ PRICE_HISTORY_FILE = os.getenv("PRICE_HISTORY_FILE", "price_history.json")
 ID_MAPPINGS_FILE = "id_mappings.json"
 
 threshold = 0.05  # 5% price change threshold
+time_window = 10 * 60  # 10 minutes in seconds
 
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -143,13 +144,17 @@ def check_price_changes(batches):
         else:
             price = price_info
 
-        if len(price_history[coin]) >= 3:
-            previous_price = price_history[coin][-3]['price']
-            price_change = (price - previous_price) / previous_price
-            if abs(price_change) >= threshold:
-                direction = "up" if price_change > 0 else "down"
-                message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 15 minutes. Current price: ${price:.2f}"
-                send_telegram_message(message)
+        if len(price_history[coin]) >= 2:
+            previous_timestamp = price_history[coin][-2]['timestamp']
+            previous_price = price_history[coin][-2]['price']
+
+            # Check if the previous price was recorded within the last 10 minutes
+            if time.time() - previous_timestamp <= time_window:
+                price_change = (price - previous_price) / previous_price
+                if abs(price_change) >= threshold:
+                    direction = "up" if price_change > 0 else "down"
+                    message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 10 minutes. Current price: ${price:.2f}"
+                    send_telegram_message(message)
         price_history[coin].append({'timestamp': time.time(), 'price': price})
 
 def split_into_batches(coins):
