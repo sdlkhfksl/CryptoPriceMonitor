@@ -4,7 +4,6 @@ import os
 import time
 from multiprocessing import Process, Manager
 
-# 从环境变量中获取API密钥和其他配置信息
 COINMARKETCAP_API_KEY = os.getenv("COINMARKETCAP_API_KEY")
 CRYPTOCOMPARE_API_KEY = os.getenv("CRYPTOCOMPARE_API_KEY")
 MESSARI_API_KEY = os.getenv("MESSARI_API_KEY")
@@ -15,7 +14,6 @@ ID_MAPPINGS_FILE = "id_mappings.json"
 
 threshold = 0.05  # 5% price change threshold
 
-# Function to send a message via Telegram
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -29,57 +27,11 @@ def send_telegram_message(message):
     except requests.RequestException as e:
         print(f"Error sending message to Telegram: {e}")
 
-# Function to fetch top 100 coins from CoinGecko
-def get_top_100_coins():
-    response = requests.get('https://api.coingecko.com/api/v3/coins/markets', params={
-        'vs_currency': 'usd',
-        'order': 'market_cap_desc',
-        'per_page': 100,
-        'page': 1,
-        'sparkline': False
-    })
-    return response.json()
-
-# Function to generate ID mappings for the top 100 coins dynamically
-def generate_id_mappings():
-    coingecko_map = {coin['id']: coin['id'] for coin in get_top_100_coins()}
-
-    coinmarketcap_response = requests.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/map', headers={
-        'X-CMC_PRO_API_KEY': COINMARKETCAP_API_KEY
-    })
-    coinmarketcap_map = {coin['slug']: coin['symbol'] for coin in coinmarketcap_response.json()['data']}
-    
-    cryptocompare_response = requests.get('https://min-api.cryptocompare.com/data/all/coinlist', headers={
-        'authorization': f'Apikey {CRYPTOCOMPARE_API_KEY}'
-    })
-    cryptocompare_map = {coin['FullName'].lower().replace(' ', '-'): coin['Symbol'] for coin in cryptocompare_response.json()['Data'].values()}
-    
-    messari_response = requests.get('https://data.messari.io/api/v1/assets')
-    messari_map = {coin['slug']: coin['symbol'] for coin in messari_response.json()['data']}
-
-    coinpaprika_response = requests.get('https://api.coinpaprika.com/v1/coins')
-    coinpaprika_map = {coin['id']: coin['symbol'] for coin in coinpaprika_response.json()}
-
-    mappings = {
-        'coingecko': coingecko_map,
-        'coinmarketcap': coinmarketcap_map,
-        'cryptocompare': cryptocompare_map,
-        'messari': messari_map,
-        'coinpaprika': coinpaprika_map
-    }
-
-    with open(ID_MAPPINGS_FILE, 'w') as f:
-        json.dump(mappings, f, indent=4)
-
-    return mappings
-
-# Function to load ID mappings
 def load_id_mappings():
     if os.path.exists(ID_MAPPINGS_FILE):
         with open(ID_MAPPINGS_FILE, 'r') as f:
             return json.load(f)
-    else:
-        return generate_id_mappings()
+    raise FileNotFoundError(f"{ID_MAPPINGS_FILE} not found. Please run the ID mappings generation script.")
 
 mappings = load_id_mappings()
 coingecko_map = mappings['coingecko']
@@ -88,7 +40,6 @@ cryptocompare_map = mappings['cryptocompare']
 messari_map = mappings['messari']
 coinpaprika_map = mappings['coinpaprika']
 
-# Function to fetch prices from CoinGecko
 def fetch_from_coingecko(coins, current_prices):
     ids = ','.join(coins)
     response = requests.get('https://api.coingecko.com/api/v3/simple/price', params={
@@ -100,7 +51,6 @@ def fetch_from_coingecko(coins, current_prices):
     else:
         print(f"Error fetching from CoinGecko: {response.status_code}, {response.text}")
 
-# Function to fetch prices from CoinMarketCap
 def fetch_from_coinmarketcap(coins, current_prices):
     coin_ids = [coinmarketcap_map[coin] for coin in coins if coin in coinmarketcap_map]
     if coin_ids:
@@ -117,7 +67,6 @@ def fetch_from_coinmarketcap(coins, current_prices):
         else:
             print(f"Error fetching from CoinMarketCap: {response.status_code}, {response.text}")
 
-# Function to fetch prices from CryptoCompare
 def fetch_from_cryptocompare(coins, current_prices):
     coin_symbols = [cryptocompare_map[coin] for coin in coins if coin in cryptocompare_map]
     if coin_symbols:
@@ -134,7 +83,6 @@ def fetch_from_cryptocompare(coins, current_prices):
         else:
             print(f"Error fetching from CryptoCompare: {response.status_code}, {response.text}")
 
-# Function to fetch prices from Messari
 def fetch_from_messari(coins, current_prices):
     coin_symbols = [messari_map[coin] for coin in coins if coin in messari_map]
     for symbol in coin_symbols:
@@ -148,7 +96,6 @@ def fetch_from_messari(coins, current_prices):
         else:
             print(f"Error fetching from Messari: {response.status_code}, {response.text}")
 
-# Function to fetch prices from CoinPaprika
 def fetch_from_coinpaprika(coins, current_prices):
     for coin in coins:
         if coin in coinpaprika_map:
@@ -159,12 +106,10 @@ def fetch_from_coinpaprika(coins, current_prices):
             else:
                 print(f"Error fetching from CoinPaprika: {response.status_code}, {response.text}")
 
-# Function to save price history to a file
 def save_price_history(price_history, file):
     with open(file, 'w') as f:
         json.dump(price_history, f, indent=4)
 
-# Function to load price history from a file
 def load_price_history(file):
     if os.path.exists(file):
         with open(file, 'r') as f:
@@ -173,7 +118,6 @@ def load_price_history(file):
 
 price_history = load_price_history(PRICE_HISTORY_FILE)
 
-# Function to check for significant price changes
 def check_price_changes(batches):
     manager = Manager()
     current_prices = manager.dict()
@@ -195,21 +139,19 @@ def check_price_changes(batches):
 
     for coin, price_info in current_prices.items():
         if isinstance(price_info, dict):
-            price = price_info.get('usd', None)
+            price = price_info['usd']
         else:
             price = price_info
-        
-        if price is not None:
-            if len(price_history[coin]) >= 3:
-                previous_price = price_history[coin][-3]['price']
-                price_change = (price - previous_price) / previous_price
-                if abs(price_change) >= threshold:
-                    direction = "up" if price_change > 0 else "down"
-                    message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 15 minutes. Current price: ${price:.2f}"
-                    send_telegram_message(message)
-            price_history[coin].append({'timestamp': time.time(), 'price': price})
 
-# Split coins into batches for fetching from different sources
+        if len(price_history[coin]) >= 3:
+            previous_price = price_history[coin][-3]['price']
+            price_change = (price - previous_price) / previous_price
+            if abs(price_change) >= threshold:
+                direction = "up" if price_change > 0 else "down"
+                message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 15 minutes. Current price: ${price:.2f}"
+                send_telegram_message(message)
+        price_history[coin].append({'timestamp': time.time(), 'price': price})
+
 def split_into_batches(coins):
     return [coins[i::5] for i in range(5)]
 
