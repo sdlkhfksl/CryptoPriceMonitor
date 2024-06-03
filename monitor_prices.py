@@ -129,15 +129,24 @@ def monitor_prices():
     # Check for price changes and send alerts if necessary
     for coin, current_price in current_prices.items():
         if coin in historical_prices:
-            historical_price = historical_prices[coin]
-            price_change = abs(current_price - historical_price) / historical_price
-            if price_change >= threshold:
-                message = f"{coin} price changed by {price_change * 100:.2f}% from {historical_price} to {current_price}"
-                send_telegram_message(message)
+            historical_data = historical_prices[coin]
+            if len(historical_data) >= 2:
+                historical_price = historical_data[-2]['price']
+                price_change = abs(current_price - historical_price) / historical_price
+                if price_change >= threshold:
+                    message = f"{coin} price changed by {price_change * 100:.2f}% from {historical_price} to {current_price}"
+                    send_telegram_message(message)
+
+        # Update historical prices
+        if coin not in historical_prices:
+            historical_prices[coin] = []
+        historical_prices[coin].append({'timestamp': datetime.now().isoformat(), 'price': current_price})
+        if len(historical_prices[coin]) > 3:
+            historical_prices[coin].pop(0)
 
     # Save current prices for future comparison
     with open(PRICE_HISTORY_FILE, 'w') as f:
-        json.dump(current_prices, f)
+        json.dump(historical_prices, f, indent=4)
 
 if __name__ == "__main__":
     monitor_prices()
