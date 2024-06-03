@@ -1,6 +1,7 @@
 import requests
 import json
 import os
+import time
 from multiprocessing import Process, Manager
 
 # 从环境变量中获取API密钥和其他配置信息
@@ -10,6 +11,7 @@ MESSARI_API_KEY = os.getenv("MESSARI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 PRICE_HISTORY_FILE = os.getenv("PRICE_HISTORY_FILE", "price_history.json")
+ID_MAPPINGS_FILE = "id_mappings.json"
 
 threshold = 0.05  # 5% price change threshold
 
@@ -36,6 +38,7 @@ def get_top_100_coins():
         'page': 1,
         'sparkline': False
     })
+    response.raise_for_status()
     return response.json()
 
 # Function to generate ID mappings for the top 100 coins dynamically
@@ -45,22 +48,50 @@ def generate_id_mappings():
     coinmarketcap_response = requests.get('https://pro-api.coinmarketcap.com/v1/cryptocurrency/map', headers={
         'X-CMC_PRO_API_KEY': COINMARKETCAP_API_KEY
     })
-    coinmarketcap_map = {coin['slug']: coin['symbol'] for coin in coinmarketcap_response.json()['data']}
+    coinmarketcap_response.raise_for_status()
+    coinmarketcap_map = {coin['slug']: coin['id'] for coin in coinmarketcap_response.json()['data']}
     
     cryptocompare_response = requests.get('https://min-api.cryptocompare.com/data/all/coinlist', headers={
         'authorization': f'Apikey {CRYPTOCOMPARE_API_KEY}'
     })
+    cryptocompare_response.raise_for_status()
     cryptocompare_map = {coin['FullName'].lower().replace(' ', '-'): coin['Symbol'] for coin in cryptocompare_response.json()['Data'].values()}
     
     messari_response = requests.get('https://data.messari.io/api/v1/assets')
+    messari_response.raise_for_status()
     messari_map = {coin['slug']: coin['symbol'] for coin in messari_response.json()['data']}
 
     coinpaprika_response = requests.get('https://api.coinpaprika.com/v1/coins')
+    coinpaprika_response.raise_for_status()
     coinpaprika_map = {coin['id']: coin['symbol'] for coin in coinpaprika_response.json()}
 
-    return coingecko_map, coinmarketcap_map, cryptocompare_map, messari_map, coinpaprika_map
+    mappings = {
+        'coingecko': coingecko_map,
+        'coinmarketcap': coinmarketcap_map,
+        'cryptocompare': cryptocompare_map,
+        'messari': messari_map,
+        'coinpaprika': coinpaprika_map
+    }
 
-coingecko_map, coinmarketcap_map, cryptocompare_map, messari_map, coinpaprika_map = generate_id_mappings()
+    with open(ID_MAPPINGS_FILE, 'w') as f:
+        json.dump(mappings, f, indent=4)
+
+    return mappings
+
+# Function to load ID mappings
+def load_id_mappings():
+    if os.path.exists(ID_MAPPINGS_FILE):
+        with open(ID_MAPPINGS_FILE, 'r') as f:
+            return json.load(f)
+    else:
+        return generate_id_mappings()
+
+mappings = load_id_mappings()
+coingecko_map = mappings['coingecko']
+coinmarketcap_map = mappings['coinmarketcap']
+cryptocompare_map = mappings['cryptocompare']
+messari_map = mappings['messari']
+coinpaprika_map = mappings['coinpaprika']
 
 # Function to fetch prices from CoinGecko
 def fetch_from_coingecko(coins, current_prices):
@@ -180,11 +211,17 @@ def check_price_changes(batches):
             price_history[coin].append(price)
             if len(price_history[coin]) == 3:  # 10 minutes, every 5 minutes 1 price
                 initial_price = price_history[coin][0]
-                latest_price = price_history[coin][-1]                
+                latest_price = price_history[coin][-1]
+                # Ensure both initial_price and latest_price are floats
+                if isinstance(initial_price, dict):
+                    initial_price = initial_price.get('usd', initial_price)
+                if isinstance(latest_price, dict):
+                    latest_price = latest_price.get('usd', latest_price)
                 price_change = (latest_price - initial_price) / initial_price
                 if abs(price_change) >= threshold:
+                    change_type = "up" if price_change > 0 else "down"
                     change_pct = price_change * 100
-                    msg = f"Coin {coin}: Price changed by {change_pct:.2f}% over the last 10 minutes."
+                    msg = f"Coin {coin}: Price went {change_type} by {change_pct:.2f}% over the last 10 minutes."
                     print(msg)
                     send_telegram_message(msg)
 
