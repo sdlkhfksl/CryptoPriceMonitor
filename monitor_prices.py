@@ -11,7 +11,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 # 从环境变量中获取API密钥和其他配置信息
 COINMARKETCAP_API_KEY = os.getenv("COINMARKETCAP_API_KEY")
 CRYPTOCOMPARE_API_KEY = os.getenv("CRYPTOCOMPARE_API_KEY")
-MESSARI_API_KEY = os.getenv("MESSARI_API_KEY")
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 PRICE_HISTORY_FILE = os.getenv("PRICE_HISTORY_FILE", "price_history.json")
@@ -33,12 +32,12 @@ def send_telegram_message(message):
     except requests.RequestException as e:
         logging.error(f"Error sending message to Telegram: {e}")
 
-# 获取前20名的币种价格（1-20）
+# 获取前25名的币种价格（1-25）
 def fetch_from_coingecko(current_prices):
     response = requests.get('https://api.coingecko.com/api/v3/coins/markets', params={
         'vs_currency': 'usd',
         'order': 'market_cap_desc',
-        'per_page': 20,
+        'per_page': 25,
         'page': 1,
         'sparkline': False
     })
@@ -49,11 +48,11 @@ def fetch_from_coingecko(current_prices):
     else:
         logging.error(f"Error fetching from CoinGecko: {response.status_code}, {response.text}")
 
-# 获取排名21-40的币种价格（21-40）
+# 获取排名26-50的币种价格（26-50）
 def fetch_from_coinmarketcap(current_prices):
     response = requests.get(f'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest', params={
-        'start': '21',
-        'limit': '20',
+        'start': '26',
+        'limit': '25',
         'convert': 'USD'
     }, headers={
         'X-CMC_PRO_API_KEY': COINMARKETCAP_API_KEY
@@ -65,10 +64,10 @@ def fetch_from_coinmarketcap(current_prices):
     else:
         logging.error(f"Error fetching from CoinMarketCap: {response.status_code}, {response.text}")
 
-# 获取排名41-60的币种价格（41-60）
+# 获取排名51-75的币种价格（51-75）
 def fetch_from_cryptocompare(current_prices):
     response = requests.get(f'https://min-api.cryptocompare.com/data/top/mktcapfull', params={
-        'limit': 20,
+        'limit': 25,
         'tsym': 'USD',
         'page': 3
     }, headers={
@@ -85,27 +84,11 @@ def fetch_from_cryptocompare(current_prices):
     else:
         logging.error(f"Error fetching from CryptoCompare: {response.status_code}, {response.text}")
 
-# 获取排名61-80的币种价格（61-80）
-def fetch_from_messari(current_prices):
-    response = requests.get(f'https://data.messari.io/api/v1/assets', params={
-        'limit': 20,
-        'page': 4,
-        'sort': 'marketcap'
-    }, headers={
-        'x-messari-api-key': MESSARI_API_KEY
-    })
-    if response.status_code == 200:
-        data = response.json()['data']
-        for coin in data:
-            current_prices[coin['slug']] = coin['metrics']['market_data']['price_usd']
-    else:
-        logging.error(f"Error fetching from Messari: {response.status_code}, {response.text}")
-
-# 获取排名81-100的币种价格（81-100）
+# 获取排名76-100的币种价格（76-100）
 def fetch_from_coinpaprika(current_prices):
     response = requests.get('https://api.coinpaprika.com/v1/coins')
     if response.status_code == 200:
-        data = response.json()[80:100]
+        data = response.json()[75:100]
         for coin in data:
             ticker_response = requests.get(f'https://api.coinpaprika.com/v1/tickers/{coin["id"]}')
             if ticker_response.status_code == 200:
@@ -138,7 +121,6 @@ def check_price_changes():
         Process(target=fetch_from_coingecko, args=(current_prices,)),
         Process(target=fetch_from_coinmarketcap, args=(current_prices,)),
         Process(target=fetch_from_cryptocompare, args=(current_prices,)),
-        Process(target=fetch_from_messari, args=(current_prices,)),
         Process(target=fetch_from_coinpaprika, args=(current_prices,))
     ]
 
