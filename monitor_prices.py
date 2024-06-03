@@ -6,7 +6,7 @@ from multiprocessing import Process, Manager
 import logging
 
 # 配置日志记录
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # 从环境变量中获取API密钥和其他配置信息
 COINMARKETCAP_API_KEY = os.getenv("COINMARKETCAP_API_KEY")
@@ -78,7 +78,10 @@ def fetch_from_cryptocompare(current_prices):
         data = response.json()['Data']
         for coin in data:
             coin_info = coin['CoinInfo']
-            current_prices[coin_info['Name']] = coin['RAW']['USD']['PRICE']
+            if 'RAW' in coin and 'USD' in coin['RAW']:
+                current_prices[coin_info['Name']] = coin['RAW']['USD']['PRICE']
+            else:
+                logging.error(f"Missing 'RAW' data for coin: {coin_info['Name']}")
     else:
         logging.error(f"Error fetching from CryptoCompare: {response.status_code}, {response.text}")
 
@@ -149,16 +152,17 @@ def check_price_changes():
 
     for coin, price in current_prices.items():
         if coin in price_history and len(price_history[coin]) >= 2:
-            previous_timestamp = price_history[coin][-2]['timestamp']
-            previous_price = price_history[coin][-2]['price']
+            if isinstance(price_history[coin][-2], dict):  # 确保价格记录为字典
+                previous_timestamp = price_history[coin][-2]['timestamp']
+                previous_price = price_history[coin][-2]['price']
 
-            # Check if the previous price was recorded within the last 10 minutes
-            if time.time() - previous_timestamp <= time_window:
-                price_change = (price - previous_price) / previous_price
-                if abs(price_change) >= threshold:
-                    direction = "up" if price_change > 0 else "down"
-                    message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 10 minutes. Current price: ${price:.2f}"
-                    send_telegram_message(message)
+                # Check if the previous price was recorded within the last 10 minutes
+                if time.time() - previous_timestamp <= time_window:
+                    price_change = (price - previous_price) / previous_price
+                    if abs(price_change) >= threshold:
+                        direction = "up" if price_change > 0 else "down"
+                        message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 10 minutes. Current price: ${price:.2f}"
+                        send_telegram_message(message)
 
         if coin not in price_history:
             price_history[coin] = []
