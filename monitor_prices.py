@@ -152,21 +152,21 @@ def check_price_changes():
 
     for coin, price in current_prices.items():
         if coin in price_history and len(price_history[coin]) >= 2:
-            if isinstance(price_history[coin][-2], dict):  # 确保价格记录为字典
-                previous_timestamp = price_history[coin][-2]['timestamp']
-                previous_price = price_history[coin][-2]['price']
+            previous_price = price_history[coin][-2]
 
-                # Check if the previous price was recorded within the last 10 minutes
-                if time.time() - previous_timestamp <= time_window:
-                    price_change = (price - previous_price) / previous_price
-                    if abs(price_change) >= threshold:
-                        direction = "up" if price_change > 0 else "down"
-                        message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 10 minutes. Current price: ${price:.2f}"
-                        send_telegram_message(message)
+            # Check if the previous price was recorded within the last 10 minutes
+            if time.time() - previous_price <= time_window:
+                price_change = (price - previous_price) / previous_price
+                if abs(price_change) >= threshold:
+                    direction = "up" if price_change > 0 else "down"
+                    message = f"Price of {coin} is {direction} by {price_change:.2%} over the last 10 minutes. Current price: ${price:.2f}"
+                    send_telegram_message(message)
 
         if coin not in price_history:
             price_history[coin] = []
-        price_history[coin].append({'timestamp': time.time(), 'price': price})
+        price_history[coin].append(price)
+        if len(price_history[coin]) > 3:
+            price_history[coin].pop(0)
 
 # 检查价格变化
 check_price_changes()
