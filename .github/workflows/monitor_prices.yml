@@ -2,7 +2,7 @@ name: Monitor Crypto Prices
 
 on:
   schedule:
-    - cron: '*/5 * * * *'    # 每5分钟运行一次
+    - cron: '*/5 * * * *'  # 每5分钟运行一次
   workflow_dispatch:
 
 jobs:
@@ -58,9 +58,10 @@ jobs:
         echo "Checking for changes before committing..."
         git pull origin main
         git add $PRICE_HISTORY_FILE
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
         if git diff --cached --exit-code; then
             echo "No changes to commit."
         else
             git commit -m "Update price history"
             git push origin main
-        fi
