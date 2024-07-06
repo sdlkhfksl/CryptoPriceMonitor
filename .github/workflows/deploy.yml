@@ -19,16 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt  # If you have any requirements
+          pip install -r requirements.txt  # Make sure 'requirements.txt' exists in the root directory
 
       - name: Execute script
         run: python fetch_ips_and_modify_links.py  # Replace with your script file name
-
-      - name: Commit and push changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-
-          git add subscription_link.txt
-          git commit -m "Update subscription link"
-          git push
