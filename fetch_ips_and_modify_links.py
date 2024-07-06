@@ -75,15 +75,21 @@ if response.status_code == 200:
 
         for node in existing_nodes:
             # Find the part of the node with IP/hostname to replace
-            match = re.search(r'vless://[^@]+@([^:]+):', node)
+            match = re.search(r'(vless://[^@]+@)([^:]+)(:.+)', node)
             if match:
-                original_ip = match.group(1)
+                prefix = match.group(1)
+                original_ip = match.group(2)
+                suffix = match.group(3)
 
                 # Check if the IP is not IPv6
                 if ':' not in original_ip:
-                    random_ip = random.choice(list(ip_list))
-                    modified_node = node.replace(original_ip, random_ip, 1)
-                    modified_nodes.append(modified_node)
+                    for backup_ip in ip_list:
+                        # Create new node with backup IP
+                        new_node = f"{prefix}{backup_ip}{suffix}"
+                        modified_nodes.append(new_node)
+                else:
+                    # Keep the original node if IP is IPv6
+                    modified_nodes.append(node)
 
         # Append modified nodes to the original list
         all_nodes = existing_nodes + modified_nodes
@@ -92,12 +98,15 @@ if response.status_code == 200:
         new_subscription_content = "\n".join(all_nodes)
         new_subscription_base64 = base64.b64encode(new_subscription_content.encode('utf-8')).decode('utf-8')
 
-        # Save new subscription link to a file
+        # Save the updated subscription link to a file
         with open('subscription_link.txt', 'w') as file:
             file.write(new_subscription_base64)
-            logger.info("New subscription link saved to subscription_link.txt")
 
+        logger.info("New subscription link saved to subscription_link.txt")
         print("New subscription link saved to subscription_link.txt")
+        print("Base64 encoded content:")
+        print(new_subscription_base64)
+
 else:
-    logger.error("Failed to fetch subscription link")
-    print("Failed to fetch subscription link.")
+    logger.error(f"Failed to fetch subscription link, status code: {response.status_code}")
+    print(f"Failed to fetch subscription link, status code: {response.status_code}")
