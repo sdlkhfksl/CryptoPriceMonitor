@@ -73,23 +73,19 @@ if response.status_code == 200:
         # List to store modified nodes
         modified_nodes = []
 
-        for node in existing_nodes:
-            # Find the part of the node with IP/hostname to replace
-            match = re.search(r'(vless://[^@]+@)([^:]+)(:.+)', node)
+        # Select a random existing node to use as a template
+        random_existing_node = random.choice(existing_nodes)
+
+        # Generate new nodes for each backup IP
+        for backup_ip in ip_list:
+            match = re.search(r'(vless://[^@]+@)([^:]+)(:.+)', random_existing_node)
             if match:
                 prefix = match.group(1)
-                original_ip = match.group(2)
                 suffix = match.group(3)
 
-                # Check if the IP is not IPv6
-                if ':' not in original_ip:
-                    for backup_ip in ip_list:
-                        # Create new node with backup IP
-                        new_node = f"{prefix}{backup_ip}{suffix}"
-                        modified_nodes.append(new_node)
-                else:
-                    # Keep the original node if IP is IPv6
-                    modified_nodes.append(node)
+                # Create new node with backup IP
+                new_node = f"{prefix}{backup_ip}{suffix}"
+                modified_nodes.append(new_node)
 
         # Append modified nodes to the original list
         all_nodes = existing_nodes + modified_nodes
@@ -99,14 +95,16 @@ if response.status_code == 200:
         new_subscription_base64 = base64.b64encode(new_subscription_content.encode('utf-8')).decode('utf-8')
 
         # Save the updated subscription link to a file
-        with open('subscription_link.txt', 'w') as file:
-            file.write(new_subscription_base64)
-
-        logger.info("New subscription link saved to subscription_link.txt")
-        print("New subscription link saved to subscription_link.txt")
-        print("Base64 encoded content:")
-        print(new_subscription_base64)
-
+        try:
+            with open('subscription_link.txt', 'w') as file:
+                file.write(new_subscription_base64)
+            logger.info("New subscription link saved to subscription_link.txt")
+            print("New subscription link saved to subscription_link.txt")
+            print("Base64 encoded content:")
+            print(new_subscription_base64)
+        except IOError as e:
+            logger.error(f"Failed to write to subscription_link.txt: {e}")
+            print(f"Failed to write to subscription_link.txt. Check script.log for details.")
 else:
     logger.error(f"Failed to fetch subscription link, status code: {response.status_code}")
     print(f"Failed to fetch subscription link, status code: {response.status_code}")
