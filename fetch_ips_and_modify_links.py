@@ -63,23 +63,30 @@ if response.status_code == 200:
     decoded_content = base64.b64decode(base64_content).decode('utf-8')
 
     # Parse vless nodes from decoded content
-    existing_nodes = re.findall(r'vless://[^"]+', decoded_content)
+    existing_nodes = decoded_content.splitlines()
     logger.info(f"Found {len(existing_nodes)} existing vless nodes")
 
     # Modify IPv4 addresses in nodes with random IPs from ip_list
     modified_nodes = []
     for node in existing_nodes:
-        # Replace IPv4 in `node` with a random IP from `ip_list`
-        random_ip = random.choice(list(ip_list))
-        modified_node = re.sub(r'@[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+:', f'@{random_ip}:', node)
-        modified_nodes.append(modified_node)
+        # Find the part of the node with IP/hostname to replace
+        match = re.search(r'vless://[^@]+@([^:]+):', node)
+        if match:
+            original_ip = match.group(1)
+            random_ip = random.choice(list(ip_list))
+            modified_node = node.replace(original_ip, random_ip, 1)
+            modified_nodes.append(modified_node)
 
-    # Generate new subscription link
-    new_subscription_link = re.sub(r'vless://[^"]+', lambda _: modified_nodes.pop(0), decoded_content)
+    # Append modified nodes to the original list
+    all_nodes = existing_nodes + modified_nodes
+
+    # Encode the updated list back to Base64
+    new_subscription_content = "\n".join(all_nodes)
+    new_subscription_base64 = base64.b64encode(new_subscription_content.encode('utf-8')).decode('utf-8')
 
     # Save new subscription link to a file
     with open('subscription_link.txt', 'w') as file:
-        file.write(new_subscription_link)
+        file.write(new_subscription_base64)
         logger.info("New subscription link saved to subscription_link.txt")
 
     print("New subscription link saved to subscription_link.txt")
