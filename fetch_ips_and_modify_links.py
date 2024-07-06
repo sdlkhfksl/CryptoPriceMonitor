@@ -49,7 +49,7 @@ if key_response.status_code == 200:
     ip_list.update(additional_ips)
     logger.info(f"Found additional {len(additional_ips)} IPs from key URL")
 
-# Now `ip_list` contains all unique IPv4 addresses
+# Now ip_list contains all unique IPv4 addresses
 
 # Fetch and decode subscription link
 subscription_url = "https://sp.codewith.fun/sub/89b3cbba-e6ac-485a-9481-976a0415eab9#BPB-Normal"
@@ -73,38 +73,42 @@ if response.status_code == 200:
         # List to store modified nodes
         modified_nodes = []
 
-        # Select a random existing node to use as a template
-        random_existing_node = random.choice(existing_nodes)
+        # Filter out non-IPv6 nodes
+        non_ipv6_nodes = [node for node in existing_nodes if re.search(r'(vless://[^@]+@)([^:]+)(:.+)', node) and ':' not in re.search(r'(vless://[^@]+@)([^:]+)(:.+)', node).group(2)]
 
-        # Generate new nodes for each backup IP
-        for backup_ip in ip_list:
-            match = re.search(r'(vless://[^@]+@)([^:]+)(:.+)', random_existing_node)
-            if match:
-                prefix = match.group(1)
-                suffix = match.group(3)
+        # Ensure there are non-IPv6 nodes to modify
+        if not non_ipv6_nodes:
+            logger.error("No non-IPv6 nodes found to modify.")
+            print("No non-IPv6 nodes found to modify. Check script.log for details.")
+        else:
+            # Iterate over each IP in ip_list and create a new node for each
+            for ip in ip_list:
+                # Randomly select a non-IPv6 node
+                node = random.choice(non_ipv6_nodes)
+                match = re.search(r'(vless://[^@]+@)([^:]+)(:.+)', node)
+                if match:
+                    prefix = match.group(1)
+                    suffix = match.group(3)
+                    # Create new node with backup IP
+                    new_node = f"{prefix}{ip}{suffix}"
+                    modified_nodes.append(new_node)
 
-                # Create new node with backup IP
-                new_node = f"{prefix}{backup_ip}{suffix}"
-                modified_nodes.append(new_node)
+            # Append modified nodes to the original list
+            all_nodes = existing_nodes + modified_nodes
 
-        # Append modified nodes to the original list
-        all_nodes = existing_nodes + modified_nodes
+            # Encode the updated list back to Base64
+            new_subscription_content = "\n".join(all_nodes)
+            new_subscription_base64 = base64.b64encode(new_subscription_content.encode('utf-8')).decode('utf-8')
 
-        # Encode the updated list back to Base64
-        new_subscription_content = "\n".join(all_nodes)
-        new_subscription_base64 = base64.b64encode(new_subscription_content.encode('utf-8')).decode('utf-8')
-
-        # Save the updated subscription link to a file
-        try:
+            # Save the updated subscription link to a file
             with open('subscription_link.txt', 'w') as file:
                 file.write(new_subscription_base64)
+
             logger.info("New subscription link saved to subscription_link.txt")
             print("New subscription link saved to subscription_link.txt")
             print("Base64 encoded content:")
             print(new_subscription_base64)
-        except IOError as e:
-            logger.error(f"Failed to write to subscription_link.txt: {e}")
-            print(f"Failed to write to subscription_link.txt. Check script.log for details.")
+
 else:
     logger.error(f"Failed to fetch subscription link, status code: {response.status_code}")
     print(f"Failed to fetch subscription link, status code: {response.status_code}")
