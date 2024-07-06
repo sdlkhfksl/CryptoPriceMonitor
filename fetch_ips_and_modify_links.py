@@ -3,8 +3,14 @@ import re
 import random
 import logging
 
-# Configure logging
-logging.basicConfig(filename='script.log', level=logging.INFO, format='%(asctime)s - %(message)s')
+# Configure logging to both console and file
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
+logger = logging.getLogger(__name__)
+file_handler = logging.FileHandler('script.log')
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 # URLs to fetch IPs from
 urls = [
@@ -17,7 +23,7 @@ urls = [
 ip_list = set()  # Using a set to avoid duplicates
 
 for url in urls:
-    logging.info(f"Fetching IPs from URL: {url}")
+    logger.info(f"Fetching IPs from URL: {url}")
     response = requests.get(url)
     if response.status_code == 200:
         content = response.text
@@ -27,33 +33,33 @@ for url in urls:
         
         # Add to the set of IPs
         ip_list.update(ipv4_addresses)
-        logging.info(f"Found {len(ipv4_addresses)} IPv4 addresses")
+        logger.info(f"Found {len(ipv4_addresses)} IPv4 addresses")
 
 # Additional IPs from key URL (assuming JSON format)
 key_url = "https://api.345673.xyz/get_data"
 key_params = {"key": "o1zrmHAF"}
 
-logging.info(f"Fetching additional IPs from {key_url}")
+logger.info(f"Fetching additional IPs from {key_url}")
 key_response = requests.get(key_url, params=key_params)
 
 if key_response.status_code == 200:
     key_data = key_response.json()
     additional_ips = key_data.get('ips', [])
     ip_list.update(additional_ips)
-    logging.info(f"Found additional {len(additional_ips)} IPs from key URL")
+    logger.info(f"Found additional {len(additional_ips)} IPs from key URL")
 
 # Now `ip_list` contains all unique IPv4 addresses
 
 # Fetch and modify subscription link
 subscription_url = "https://sp.codewith.fun/sub/89b3cbba-e6ac-485a-9481-976a0415eab9#BPB-Normal"
 
-logging.info(f"Fetching subscription link from {subscription_url}")
+logger.info(f"Fetching subscription link from {subscription_url}")
 response = requests.get(subscription_url)
 
 if response.status_code == 200:
     # Parse existing vless nodes
     existing_nodes = re.findall(r'vless://[^"]+', response.text)
-    logging.info(f"Found {len(existing_nodes)} existing vless nodes")
+    logger.info(f"Found {len(existing_nodes)} existing vless nodes")
 
     # Modify IPv4 addresses in nodes with random IPs from ip_list
     modified_nodes = []
@@ -69,9 +75,9 @@ if response.status_code == 200:
     # Save new subscription link to a file
     with open('subscription_link.txt', 'w') as file:
         file.write(new_subscription_link)
-        logging.info("New subscription link saved to subscription_link.txt")
+        logger.info("New subscription link saved to subscription_link.txt")
 
     print("New subscription link saved to subscription_link.txt")
 else:
-    logging.error("Failed to fetch subscription link")
+    logger.error("Failed to fetch subscription link")
     print("Failed to fetch subscription link.")
