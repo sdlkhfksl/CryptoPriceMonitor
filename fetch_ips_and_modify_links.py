@@ -66,30 +66,38 @@ if response.status_code == 200:
     existing_nodes = decoded_content.splitlines()
     logger.info(f"Found {len(existing_nodes)} existing vless nodes")
 
-    # Modify IPv4 addresses in nodes with random IPs from ip_list
-    modified_nodes = []
-    for node in existing_nodes:
-        # Find the part of the node with IP/hostname to replace
-        match = re.search(r'vless://[^@]+@([^:]+):', node)
-        if match:
-            original_ip = match.group(1)
-            random_ip = random.choice(list(ip_list))
-            modified_node = node.replace(original_ip, random_ip, 1)
-            modified_nodes.append(modified_node)
+    if len(existing_nodes) == 0:
+        logger.error("No existing vless nodes found in the decoded content.")
+        print("No existing vless nodes found. Check script.log for details.")
+    else:
+        # List to store modified nodes
+        modified_nodes = []
 
-    # Append modified nodes to the original list
-    all_nodes = existing_nodes + modified_nodes
+        for node in existing_nodes:
+            # Find the part of the node with IP/hostname to replace
+            match = re.search(r'vless://[^@]+@([^:]+):', node)
+            if match:
+                original_ip = match.group(1)
 
-    # Encode the updated list back to Base64
-    new_subscription_content = "\n".join(all_nodes)
-    new_subscription_base64 = base64.b64encode(new_subscription_content.encode('utf-8')).decode('utf-8')
+                # Check if the IP is not IPv6
+                if ':' not in original_ip:
+                    random_ip = random.choice(list(ip_list))
+                    modified_node = node.replace(original_ip, random_ip, 1)
+                    modified_nodes.append(modified_node)
 
-    # Save new subscription link to a file
-    with open('subscription_link.txt', 'w') as file:
-        file.write(new_subscription_base64)
-        logger.info("New subscription link saved to subscription_link.txt")
+        # Append modified nodes to the original list
+        all_nodes = existing_nodes + modified_nodes
 
-    print("New subscription link saved to subscription_link.txt")
+        # Encode the updated list back to Base64
+        new_subscription_content = "\n".join(all_nodes)
+        new_subscription_base64 = base64.b64encode(new_subscription_content.encode('utf-8')).decode('utf-8')
+
+        # Save new subscription link to a file
+        with open('subscription_link.txt', 'w') as file:
+            file.write(new_subscription_base64)
+            logger.info("New subscription link saved to subscription_link.txt")
+
+        print("New subscription link saved to subscription_link.txt")
 else:
     logger.error("Failed to fetch subscription link")
     print("Failed to fetch subscription link.")
