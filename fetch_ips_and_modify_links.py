@@ -1,6 +1,7 @@
 import requests
 import re
 import random
+import base64
 import logging
 
 # Configure logging to both console and file
@@ -50,15 +51,19 @@ if key_response.status_code == 200:
 
 # Now `ip_list` contains all unique IPv4 addresses
 
-# Fetch and modify subscription link
+# Fetch and decode subscription link
 subscription_url = "https://sp.codewith.fun/sub/89b3cbba-e6ac-485a-9481-976a0415eab9#BPB-Normal"
 
 logger.info(f"Fetching subscription link from {subscription_url}")
 response = requests.get(subscription_url)
 
 if response.status_code == 200:
-    # Parse existing vless nodes
-    existing_nodes = re.findall(r'vless://[^"]+', response.text)
+    # Decode Base64 content
+    base64_content = response.content.strip()
+    decoded_content = base64.b64decode(base64_content).decode('utf-8')
+
+    # Parse vless nodes from decoded content
+    existing_nodes = re.findall(r'vless://[^"]+', decoded_content)
     logger.info(f"Found {len(existing_nodes)} existing vless nodes")
 
     # Modify IPv4 addresses in nodes with random IPs from ip_list
@@ -70,7 +75,7 @@ if response.status_code == 200:
         modified_nodes.append(modified_node)
 
     # Generate new subscription link
-    new_subscription_link = re.sub(r'vless://[^"]+', lambda _: modified_nodes.pop(0), response.text)
+    new_subscription_link = re.sub(r'vless://[^"]+', lambda _: modified_nodes.pop(0), decoded_content)
 
     # Save new subscription link to a file
     with open('subscription_link.txt', 'w') as file:
