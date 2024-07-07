@@ -77,8 +77,18 @@ all_vless_nodes = vless_nodes + new_vless_nodes
 new_vless_data = "\n".join(all_vless_nodes)
 new_vless_base64 = base64.b64encode(new_vless_data.encode('utf-8')).decode('utf-8')
 
+# 确认当前工作目录
+print(f"当前工作目录: {os.getcwd()}")
+
 # 将最终的 base64 编码字符串保存到 txt 文件
-with open("new_vless_nodes.txt", "w") as f:
+file_path = "new_vless_nodes.txt"
+with open(file_path, "w") as f:
     f.write(new_vless_base64)
 
-print("\n新的 VLESS 节点列表已保存到 new_vless_nodes.txt 文件中。")
+# 确认文件内容已写入
+if os.path.isfile(file_path):
+    print(f"文件 '{file_path}' 写入成功，内容如下：")
+    with open(file_path, "r") as f:
+        print(f.read())
+else:
+    print(f"文件 '{file_path}' 写入失败。")
