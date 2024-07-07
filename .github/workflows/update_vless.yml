@@ -2,7 +2,7 @@ name: Update VLESS Nodes
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # 每5分钟运行一次
+    - cron: '0 0 * * *'  # Every 24 hours (at midnight)
   push:
     branches:
       - main  # 可以根据需要更改为您主要分支的名称
