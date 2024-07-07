@@ -30,6 +30,19 @@ jobs:
           VLESS_SUBSCRIPTION_URL: ${{ secrets.VLESS_SUBSCRIPTION_URL }}
         run: python update_vless.py
 
+      - name: Configure git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Commit changes
+        run: |
+          git add new_vless_nodes.txt
+          git commit -m "Update VLESS nodes"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload result file
         uses: actions/upload-artifact@v2
         with:
