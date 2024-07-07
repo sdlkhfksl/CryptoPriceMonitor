@@ -81,4 +81,5 @@ new_vless_base64 = base64.b64encode(new_vless_data.encode('utf-8')).decode('utf-
 with open("new_vless_nodes.txt", "w") as f:
     f.write(new_vless_base64)
 
+print(new_vless_base64)
 print("\n新的 VLESS 节点列表已保存到 new_vless_nodes.txt 文件中。")
