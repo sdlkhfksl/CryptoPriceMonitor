@@ -1,0 +1,37 @@
+name: Update VLESS Nodes
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'  # 每5分钟运行一次
+  push:
+    branches:
+      - main  # 可以根据需要更改为您主要分支的名称
+
+jobs:
+  update_vless:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: Run script
+        env:
+          VLESS_SUBSCRIPTION_URL: ${{ secrets.VLESS_SUBSCRIPTION_URL }}
+        run: python update_vless.py
+
+      - name: Upload result file
+        uses: actions/upload-artifact@v2
+        with:
+          name: new_vless_nodes
+          path: new_vless_nodes.txt
